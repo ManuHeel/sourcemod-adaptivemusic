@@ -19,17 +19,52 @@ public void OnPluginStart()
 }
 
 public Action Command_GetHealth(int client, int args) {
-	int playerHealth = GetClientHealth(1);
-	PrintToServer("AdaptiveMusic SourceMod Plugin - Health = %i", playerHealth);
+	int player = 1; // Player is always 1 in singleplayer
+	if (HasEntProp(player, Prop_Data, "m_iHealth")) {
+		int health = GetEntProp(player, Prop_Data, "m_iHealth");
+		PrintToServer("AdaptiveMusic SourceMod Plugin - Player at index %i Health = %i", player, health);
+	}
 	return Plugin_Handled;
 }
+
+char enemies[][] = {
+	"npc_advisor",
+	"npc_antlion",
+	"npc_antlionguard",
+	"npc_barnacle",
+	"npc_breen",
+	"npc_clawscanner",
+	"npc_combinedropship",
+	"npc_combinegunship",
+	"npc_fastzombie",
+	"npc_fastzombie_torso",
+	"npc_headcrab",
+	"npc_headcrab_black",
+	"npc_headcrab_fast",
+	"npc_helicopter",
+	"npc_hunter",
+	"npc_ichthyosaur",
+	"npc_manhack",
+	"npc_metropolice",
+	"npc_poisonzombie",
+	"npc_rollermine",
+	"npc_sniper",
+	"npc_stalker",
+	"npc_strider",
+	"npc_turret_ceiling",
+	"npc_turret_floor",
+	"npc_turret_ground",
+	"npc_zombie",
+	"npc_zombie_torso",
+	"npc_zombine"
+};
 
 public Action Command_GetChasedCount(int client, int args) {
 	int chasedcount = 0;
 	int entity = FindEntityByClassname(-1, "npc_*");
 	while (entity != -1) {
-		char entityName[128];
-		GetEntityClassname(entity, entityName, sizeof entityName);
+		char entityClassName[128];
+		GetEntityClassname(entity, entityClassName, sizeof entityClassName);
 		if (HasEntProp(entity, Prop_Data, "m_hEnemy") && HasEntProp(entity, Prop_Data, "m_lifeState")) {
 			int enemyEntity = GetEntPropEnt(entity, Prop_Data, "m_hEnemy");
 			int lifeState = GetEntProp(entity, Prop_Data, "m_lifeState"); // 1 if dead
