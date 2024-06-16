@@ -13,10 +13,10 @@ public Plugin myinfo =
     url = "https://hl2musicmod.russello.studio"
 };
 
-#include "../adaptivemusic/helpers.sp"
-#include "../adaptivemusic/health-watcher.sp"
-#include "../adaptivemusic/chased-watcher.sp"
-#include "../adaptivemusic/zone-watcher.sp"
+#include "helpers.sp"
+#include "health-watcher.sp"
+#include "chased-watcher.sp"
+#include "zone-watcher.sp"
 
 public void OnPluginStart()
 {
@@ -27,6 +27,20 @@ public void OnPluginStart()
     RegAdminCmd("am_getpos", Command_GetPos, ADMFLAG_GENERIC);
     RegAdminCmd("am_gethealth", Command_GetHealth, ADMFLAG_GENERIC);
     RegAdminCmd("am_getchasedcount", Command_GetChasedCount, ADMFLAG_GENERIC);
+}
+
+public void OnMapInit() {
+    // Parse the KeyVales of the map
+    char mapName[64];
+    GetCurrentMap(mapName, sizeof mapName);
+    char kvFilePath[256];
+    BuildPath( Path_SM, kvFilePath, sizeof( kvFilePath ), "data/adaptivemusic/maps/" )
+    StrCat(kvFilePath, sizeof kvFilePath, mapName);
+    StrCat(kvFilePath, sizeof kvFilePath, ".kv");
+    PrintToServer("AdaptiveMusic SourceMod Plugin - Opening KeyValues files at %s", kvFilePath);
+    KeyValues kv = new KeyValues("not_found");
+    kv.ImportFromFile(kvFilePath);
+    ParseKeyValues(kv);
 }
 
 int lastThinkedTick = 0;
@@ -50,3 +64,39 @@ public void Think() {
     Command_GetPos(0,0);
 }
 
+void ParseKeyValues(KeyValues kv)
+{
+    do
+    {
+        // You can read the section/key name by using kv.GetSectionName here.
+        char sectionName[64];
+        kv.GetSectionName(sectionName, sizeof sectionName),
+        PrintToServer("Section Name: %s", sectionName);
+        if (kv.GotoFirstSubKey(false))
+        {
+            PrintToServer("Section");
+            // Current key is a section. Browse it recursively.
+            ParseKeyValues(kv);
+            kv.GoBack();
+        }
+        else
+        {
+            // Current key is a regular key, or an empty section.
+            PrintToServer("Key");
+            if (kv.GetDataType(NULL_STRING) != KvData_None)
+            {
+                // Read value of key here (use NULL_STRING as key name). You can
+                // also get the key name by using kv.GetSectionName here.
+                char value[128];
+                kv.GetSectionName(sectionName, sizeof sectionName);
+                kv.GetString(NULL_STRING, value, sizeof value);
+                PrintToServer("%s = %s", sectionName, value);
+
+            }
+            else
+            {
+                // Found an empty sub section. It can be handled here if necessary.
+            }
+        }
+    } while (kv.GotoNextKey(false));
+}
