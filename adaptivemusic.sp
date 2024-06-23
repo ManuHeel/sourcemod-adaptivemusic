@@ -17,6 +17,7 @@ public Plugin myinfo =
 #include "health-watcher.sp"
 #include "chased-watcher.sp"
 #include "zone-watcher.sp"
+#include "extension.sp"
 
 public void OnPluginStart()
 {
@@ -27,6 +28,7 @@ public void OnPluginStart()
     RegAdminCmd("am_getpos", Command_GetPos, ADMFLAG_GENERIC);
     RegAdminCmd("am_gethealth", Command_GetHealth, ADMFLAG_GENERIC);
     RegAdminCmd("am_getchasedcount", Command_GetChasedCount, ADMFLAG_GENERIC);
+    RegAdminCmd("am_loadbank", Command_LoadBank, ADMFLAG_GENERIC);
 }
 
 public void OnMapInit() {
