@@ -22,10 +22,38 @@ public Action Command_LoadBank(int client, int args) {
 
 /**
  * Load an FMOD bank through the Adaptive Music Extension
- * @param bankName  Player entity index
+ * @param bankName  The name of the bank to load
  * @return  Return description
  */
 int LoadBank(const char[] bankName) {
     LoadFMODBank(bankName);
+    return 0;
+}
+
+/**
+ * Console command to start an FMOD event through the Adaptive Music Extension
+ * @param client  Client launching the command (0 for console)
+ * @param args    Console args
+ * @return  Plugin return code
+ */
+public Action Command_StartEvent(int client, int args) {
+    if (args < 1)
+    {
+        ReplyToCommand(client, "Usage: am_startevent <event_path>");
+        return Plugin_Handled;	
+    }
+    char eventPath[512];
+    GetCmdArgString(eventPath, sizeof(eventPath));
+    StartEvent(eventPath)
+    return Plugin_Handled;
+}
+
+/**
+ * Start an FMOD event through the Adaptive Music Extension
+ * @param eventPath  The path/name of the event to start
+ * @return  Return description
+ */
+int StartEvent(const char[] eventPath) {
+    StartFMODEvent(eventPath);
     return 0;
 }
