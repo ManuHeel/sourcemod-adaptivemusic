@@ -30,6 +30,7 @@ public void OnPluginStart()
     RegAdminCmd("am_getchasedcount", Command_GetChasedCount, ADMFLAG_GENERIC);
     RegAdminCmd("am_loadbank", Command_LoadBank, ADMFLAG_GENERIC);
     RegAdminCmd("am_startevent", Command_StartEvent, ADMFLAG_GENERIC);
+    RegAdminCmd("am_stopevent", Command_StopEvent, ADMFLAG_GENERIC);
 }
 
 public void OnMapInit() {
@@ -62,9 +63,11 @@ public void OnGameFrame()
  * Run all the watchers' thinking system
  */
 public void Think() {
+    float fTimestamp = GetEngineTime();
     Command_GetHealth(0, 0)
     Command_GetChasedCount(0, 0);
     Command_GetPos(0,0);
+    PrintToServer("Thinking the watchers took %.4f ms", 1000*(GetEngineTime()-fTimestamp));
 }
 
 void ParseKeyValues(KeyValues kv)
