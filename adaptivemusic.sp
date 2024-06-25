@@ -35,18 +35,30 @@ public void OnPluginStart()
     RegAdminCmd("am_setglobalparameter", Command_SetGlobalParameter, ADMFLAG_GENERIC);
 }
 
+int adaptiveMusicAvailable = false;
+
 public void OnMapInit() {
-    // Parse the KeyVales of the map
+    // Parse the KeyValues of the map
     char mapName[64];
     GetCurrentMap(mapName, sizeof mapName);
     char kvFilePath[256];
     BuildPath( Path_SM, kvFilePath, sizeof( kvFilePath ), "data/adaptivemusic/maps/" )
     StrCat(kvFilePath, sizeof kvFilePath, mapName);
     StrCat(kvFilePath, sizeof kvFilePath, ".kv");
-    PrintToServer("AdaptiveMusic SourceMod Plugin - Opening KeyValues files at %s", kvFilePath);
-    KeyValues kv = new KeyValues("not_found");
+    PrintToServer("AdaptiveMusic SourceMod Plugin - Trying to open the KeyValues file at %s", kvFilePath);
+    KeyValues kv = new KeyValues(NULL_STRING);
     kv.ImportFromFile(kvFilePath);
-    ParseKeyValues(kv);
+    // Check if we could find and load the KeyValues file
+    char firstKey[64];
+    kv.GetSectionName(firstKey, sizeof firstKey);
+    if (strcmp(firstKey, NULL_STRING) == 0) {
+        PrintToServer("AdaptiveMusic SourceMod Plugin - Could not find or open the KeyValues file at %s", kvFilePath);
+        adaptiveMusicAvailable = false;
+    } else {
+        PrintToServer("AdaptiveMusic SourceMod Plugin - Successfully found and opened the KeyValues file at %s", kvFilePath);
+        adaptiveMusicAvailable = true;
+        ParseKeyValues(kv);
+    }
 }
 
 int thinkPeriod = 10;
@@ -54,20 +66,22 @@ bool knownPausedState = false;
 
 public void OnGameFrame()
 {
-    bool isServerProcessing = IsServerProcessing()
-    // Handle if the Adaptive Music should be paused or not
-    if (isServerProcessing && (knownPausedState == true)) {
-        SetFMODPausedState(0);
-        knownPausedState = false;
-    } else if (!isServerProcessing && (knownPausedState == false)) {
-        SetFMODPausedState(1);
-        knownPausedState = true;
-    }
+    if (adaptiveMusicAvailable) {
+        bool isServerProcessing = IsServerProcessing()
+        // Handle if the Adaptive Music should be paused or not
+        if (isServerProcessing && (knownPausedState == true)) {
+            SetFMODPausedState(0);
+            knownPausedState = false;
+        } else if (!isServerProcessing && (knownPausedState == false)) {
+            SetFMODPausedState(1);
+            knownPausedState = true;
+        }
 
-    // Think the watchers
-    int gameTick = GetGameTickCount();
-    if (isServerProcessing && Modulo(gameTick, thinkPeriod) == 0) {
-        Think();
+        // Think the watchers
+        int gameTick = GetGameTickCount();
+        if (isServerProcessing && Modulo(gameTick, thinkPeriod) == 0) {
+            Think();
+        }
     }
 }
 /**
@@ -85,9 +99,8 @@ void ParseKeyValues(KeyValues kv)
 {
     do
     {
-        // You can read the section/key name by using kv.GetSectionName here.
         char sectionName[64];
-        kv.GetSectionName(sectionName, sizeof sectionName),
+        kv.GetSectionName(sectionName, sizeof sectionName);
         PrintToServer("Section Name: %s", sectionName);
         if (kv.GotoFirstSubKey(false))
         {
