@@ -1,0 +1,51 @@
+"adaptive_music"
+{
+	"globals"
+	{
+		"bank" "master"
+		"event" "sandbox"
+	}
+	"watcher"
+	{
+		"type" "health"
+		"parameter" "health"
+	}
+	"watcher"
+	{
+		"type" "chased"
+		"parameter" "chased_count"
+	}
+	"watcher"
+	{
+		"type" "zone"
+		"zones"
+		{
+			"zone"
+			{
+				"min_origin" "-318 -7427 -181"
+				"max_origin" "831 -7287 69"
+				"parameter" "in_zone_1"
+			}
+			"zone"
+			{
+				"min_origin" "0 0 0"
+				"max_origin" "100 100 100"
+				"parameter" "in_zone_2"
+			}
+		}
+	}
+	"watcher"
+	{
+		"type" "entity"
+		"entity_class" "npc_metropolice"
+		"entity_watched_status" "is_alive"
+		"parameter" "metropolice_alive"
+	}
+	"watcher"
+	{
+		"type" "entity"
+		"entity_class" "npc_helicopter"
+		"entity_watched_status" "exists"
+		"parameter" "helicopter_exists"
+	}
+}	

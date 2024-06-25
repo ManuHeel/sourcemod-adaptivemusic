@@ -1,0 +1,34 @@
+"adaptive_music"
+{
+	"globals"
+	{
+		"bank" "master"
+		"event" "d1_trainstation_05"
+	}
+	"watcher"
+	{
+		"type" "suit"
+		"parameter" "is_suit_equipped"
+	}
+	"watcher"
+	{
+		"type" "scene"
+		"scenes"
+		{
+			"scene"
+			{
+				"scene_name" "lab04b_lcs"
+				"scene_state" "test"
+				"parameter" "scene_1_state_1"
+			}
+		}
+	}
+	"watcher"
+	{
+		"type" "entity"
+		"entity_class" "npc_alyx"
+		"entity_watched_status" "scene"
+		"entity_watched_scene" "testtest"
+		"parameter" "alyx_scene_1"
+	}
+}
