@@ -20,6 +20,11 @@ public Plugin myinfo =
 #include "zone-watcher.sp"
 #include "extension.sp"
 
+enum struct AdaptiveMusicSettings {
+    char bankName[64];
+    char eventPath[64];
+}
+
 public void OnPluginStart()
 {
     PrintToServer("AdaptiveMusic SourceMod Plugin - Loaded");
@@ -56,46 +61,45 @@ public void OnMapInit() {
         adaptiveMusicAvailable = false;
     } else {
         PrintToServer("AdaptiveMusic SourceMod Plugin - Successfully found and opened the KeyValues file at %s", kvFilePath);
-        adaptiveMusicAvailable = true;
-        ParseKeyValues(kv);
-    }
-}
-
-int thinkPeriod = 10;
-bool knownPausedState = false; 
-
-public void OnGameFrame()
-{
-    if (adaptiveMusicAvailable) {
-        bool isServerProcessing = IsServerProcessing()
-        // Handle if the Adaptive Music should be paused or not
-        if (isServerProcessing && (knownPausedState == true)) {
-            SetFMODPausedState(0);
-            knownPausedState = false;
-        } else if (!isServerProcessing && (knownPausedState == false)) {
-            SetFMODPausedState(1);
-            knownPausedState = true;
-        }
-
-        // Think the watchers
-        int gameTick = GetGameTickCount();
-        if (isServerProcessing && Modulo(gameTick, thinkPeriod) == 0) {
-            Think();
+        int parsingResult = ParseKeyValues(kv);
+        if (parsingResult != 0 ) {
+            PrintToServer("AdaptiveMusic SourceMod Plugin - Could not parse the KeyValues file at %s, error: %i", kvFilePath, parsingResult);
+            adaptiveMusicAvailable = false;
+        } else {
+            adaptiveMusicAvailable = true;
         }
     }
 }
-/**
- * Run all the watchers' thinking system
- */
-public void Think() {
-    //float fTimestamp = GetEngineTime();
-    //Command_GetHealth(0, 0)
-    //Command_GetChasedCount(0, 0);
-    //Command_GetPos(0,0);
-    //PrintToServer("Thinking the watchers took %.4f ms", 1000*(GetEngineTime()-fTimestamp));
+
+int ParseKeyValues(KeyValues kv) {
+    do
+    {
+        char sectionName[64];
+        kv.GetSectionName(sectionName, sizeof sectionName);
+        if (strcmp(sectionName, "adaptive_music") != 0) {
+            PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got %s instead of \"adaptive_music\"");
+            return 1;
+        }
+        if (kv.GotoFirstSubKey(false))
+        {
+            // Current key is a section. Browse it recursively.
+            ParseKeyValues(kv);
+            kv.GoBack();
+        }
+        else
+        {
+            // Current key is a regular key, or an empty section.
+            PrintToServer("Key");
+            PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"adaptive_music\" section");
+            return 1;
+        }
+    } while (kv.GotoNextKey(false));
+    return 0;
 }
 
-void ParseKeyValues(KeyValues kv)
+// COPYPAAASTE
+/*
+void ParseKeyValuesSandbox(KeyValues kv)
 {
     do
     {
@@ -129,4 +133,38 @@ void ParseKeyValues(KeyValues kv)
             }
         }
     } while (kv.GotoNextKey(false));
+}
+*/
+
+int thinkPeriod = 10;
+bool knownPausedState = false; 
+
+public void OnGameFrame() {
+    if (adaptiveMusicAvailable) {
+        bool isServerProcessing = IsServerProcessing()
+        // Handle if the Adaptive Music should be paused or not
+        if (isServerProcessing && (knownPausedState == true)) {
+            SetFMODPausedState(0);
+            knownPausedState = false;
+        } else if (!isServerProcessing && (knownPausedState == false)) {
+            SetFMODPausedState(1);
+            knownPausedState = true;
+        }
+
+        // Think the watchers
+        int gameTick = GetGameTickCount();
+        if (isServerProcessing && Modulo(gameTick, thinkPeriod) == 0) {
+            Think();
+        }
+    }
+}
+/**
+ * Run all the watchers' thinking system
+ */
+public void Think() {
+    //float fTimestamp = GetEngineTime();
+    //Command_GetHealth(0, 0)
+    //Command_GetChasedCount(0, 0);
+    //Command_GetPos(0,0);
+    //PrintToServer("Thinking the watchers took %.4f ms", 1000*(GetEngineTime()-fTimestamp));
 }
