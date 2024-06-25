@@ -1,5 +1,6 @@
 #include <sourcemod>
 #include <sdktools>
+#include <adaptivemusic>
 
 /**
  * Standard SourceMod plugin info 
@@ -31,6 +32,7 @@ public void OnPluginStart()
     RegAdminCmd("am_loadbank", Command_LoadBank, ADMFLAG_GENERIC);
     RegAdminCmd("am_startevent", Command_StartEvent, ADMFLAG_GENERIC);
     RegAdminCmd("am_stopevent", Command_StopEvent, ADMFLAG_GENERIC);
+    RegAdminCmd("am_setglobalparameter", Command_SetGlobalParameter, ADMFLAG_GENERIC);
 }
 
 public void OnMapInit() {
@@ -47,15 +49,24 @@ public void OnMapInit() {
     ParseKeyValues(kv);
 }
 
-int lastThinkedTick = 0;
 int thinkPeriod = 10;
+bool knownPausedState = false; 
 
 public void OnGameFrame()
 {
+    bool isServerProcessing = IsServerProcessing()
+    // Handle if the Adaptive Music should be paused or not
+    if (isServerProcessing && (knownPausedState == true)) {
+        SetFMODPausedState(0);
+        knownPausedState = false;
+    } else if (!isServerProcessing && (knownPausedState == false)) {
+        SetFMODPausedState(1);
+        knownPausedState = true;
+    }
+
+    // Think the watchers
     int gameTick = GetGameTickCount();
-    // Think
-    if (gameTick != lastThinkedTick && Modulo(gameTick, thinkPeriod) == 0) {
-        lastThinkedTick = gameTick;
+    if (isServerProcessing && Modulo(gameTick, thinkPeriod) == 0) {
         Think();
     }
 }
@@ -63,11 +74,11 @@ public void OnGameFrame()
  * Run all the watchers' thinking system
  */
 public void Think() {
-    float fTimestamp = GetEngineTime();
-    Command_GetHealth(0, 0)
-    Command_GetChasedCount(0, 0);
-    Command_GetPos(0,0);
-    PrintToServer("Thinking the watchers took %.4f ms", 1000*(GetEngineTime()-fTimestamp));
+    //float fTimestamp = GetEngineTime();
+    //Command_GetHealth(0, 0)
+    //Command_GetChasedCount(0, 0);
+    //Command_GetPos(0,0);
+    //PrintToServer("Thinking the watchers took %.4f ms", 1000*(GetEngineTime()-fTimestamp));
 }
 
 void ParseKeyValues(KeyValues kv)

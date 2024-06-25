@@ -85,3 +85,33 @@ int StopEvent(const char[] eventPath) {
     StopFMODEvent(eventPath);
     return 0;
 }
+
+/**
+ * Console command to set an FMOD global parameter through the Adaptive Music Extension
+ * @param client  Client launching the command (0 for console)
+ * @param args    Console args
+ * @return  Plugin return code
+ */
+public Action Command_SetGlobalParameter(int client, int args) {
+    if (args < 2)
+    {
+        ReplyToCommand(client, "Usage: am_setglobalparameter <parameter_name> <value>");
+        return Plugin_Handled;	
+    }
+    char parameterName[512];
+    GetCmdArgString(parameterName, sizeof(parameterName));
+    SplitString(parameterName, " ", parameterName, sizeof(parameterName));
+    float value = GetCmdArgFloat(2)
+    SetGlobalParameter(parameterName, value);
+    return Plugin_Handled;
+}
+
+/**
+ * Set an FMOD global parameter through the Adaptive Music Extension
+ * @param eventPath  The path/name of the event to stop
+ * @return  Return description
+ */
+int SetGlobalParameter(const char[] parameterName, float value) {
+    SetFMODGlobalParameter(parameterName, value);
+    return 0;
+}
