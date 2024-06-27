@@ -10,8 +10,10 @@ enum struct Zone {
 
 enum struct ZoneWatcher {
     bool active;
-    ArrayList zones;
+    int zoneCount;
 }
+
+Zone zoneWatcherZones[16];
 
 /**
  * Console command to get the player's position

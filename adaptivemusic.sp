@@ -67,12 +67,14 @@ public void OnMapInit() {
     if (strcmp(firstKey, NULL_STRING) == 0) {
         PrintToServer("AdaptiveMusic SourceMod Plugin - Could not find or open the KeyValues file at %s", kvFilePath);
         adaptiveMusicAvailable = false;
+        StopAdaptiveMusic();
     } else {
         PrintToServer("AdaptiveMusic SourceMod Plugin - Successfully found and opened the KeyValues file at %s", kvFilePath);
         int parsingResult = ParseKeyValues(kv);
         if (parsingResult != 0 ) {
             PrintToServer("AdaptiveMusic SourceMod Plugin - Could not parse the KeyValues file at %s, error: %i", kvFilePath, parsingResult);
             adaptiveMusicAvailable = false;
+            StopAdaptiveMusic();
         } else {
             adaptiveMusicAvailable = true;
             InitAdaptiveMusic();
@@ -161,7 +163,7 @@ int ParseKeyValues(KeyValues kv) {
                                 return 1;
                             }
                         }else if (strcmp(sectionName, "zones") == 0) {
-                            mapMusicSettings.zoneWatcher.zones = new ArrayList(128);
+                            mapMusicSettings.zoneWatcher.zoneCount = 0;
                             // Step 1.3 (for ZoneWatcher): Get the zones values
                             if (kv.GotoFirstSubKey(false)) {
                                 do {
@@ -202,7 +204,8 @@ int ParseKeyValues(KeyValues kv) {
                                                     }
                                                 }
                                             } while (kv.GotoNextKey(false));
-                                            mapMusicSettings.zoneWatcher.zones.PushArray(zone, sizeof(zone)); // TODO: Fix this
+                                            zoneWatcherZones[mapMusicSettings.zoneWatcher.zoneCount] = zone;
+                                            mapMusicSettings.zoneWatcher.zoneCount++;
                                         } else {
                                             PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watchers.zones.zone\" section");
                                             return 1;
@@ -246,11 +249,29 @@ void InitAdaptiveMusic(){
     } else {
         mapMusicSettings.chasedWatcher.active = false;
     }
-    if (mapMusicSettings.zoneWatcher.zones.Length > 0) {
+    if (mapMusicSettings.zoneWatcher.zoneCount > 0) {
         mapMusicSettings.zoneWatcher.active = true;
     } else {
         mapMusicSettings.zoneWatcher.active = false;
     }
+}
+
+void StopAdaptiveMusic(){
+    // Reset the loaded bank for the map
+    if (IsNullString(mapMusicSettings.bank)) {
+        // TODO : Unload a bank
+        mapMusicSettings.bank = NULL_STRING;
+    }
+    // Stop the playing event for the map
+    if (IsNullString(mapMusicSettings.event)) {
+        StopEvent(mapMusicSettings.event);
+        mapMusicSettings.event = NULL_STRING;
+    }
+    // Reset the watchers
+    mapMusicSettings.healthWatcher.active = false;
+    mapMusicSettings.chasedWatcher.active = false;
+    mapMusicSettings.zoneWatcher.active = false;
+    mapMusicSettings.zoneWatcher.zoneCount = 0;
 }
 
 int thinkPeriod = 10;
@@ -281,18 +302,17 @@ public void Think() {
     float fTimestamp = GetEngineTime();
     if (mapMusicSettings.zoneWatcher.active) {
         // ZoneWatcher think
-        for (int i = 0; i < mapMusicSettings.zoneWatcher.zones.Length; i++)
+        for (int i = 0; i < mapMusicSettings.zoneWatcher.zoneCount; i++)
         {
-            Zone zone;
-            mapMusicSettings.zoneWatcher.zones.GetArray(mapMusicSettings.zoneWatcher.zones.Length - 1, zone, sizeof(zone));
-            float minOrigin[3] = zone.minOrigin;
-            float maxOrigin[3] = zone.maxOrigin;
-            bool playerInZone = IsVectorWithinBounds(GetPlayerPos, zone.minOrigin, zone.maxOrigin);
-            if (playerInZone == true && mapMusicSettings.zoneWatcher.zones.Get(i).lastKnownZoneStatus == false) {
+            bool playerInZone = IsVectorWithinBounds(GetPlayerPos(musicPlayer), zoneWatcherZones[i].minOrigin, zoneWatcherZones[i].maxOrigin);
+            if (playerInZone == true && zoneWatcherZones[i].lastKnownZoneStatus == false) {
+                SetFMODGlobalParameter(zoneWatcherZones[i].parameter, 1.0);
+                zoneWatcherZones[i].lastKnownZoneStatus = true;
+            } else if (playerInZone == false && zoneWatcherZones[i].lastKnownZoneStatus == true) {
+                SetFMODGlobalParameter(zoneWatcherZones[i].parameter, 0.0);
+                zoneWatcherZones[i].lastKnownZoneStatus = false;
             }
         }
     }
-    //Command_GetChasedCount(0, 0);
-    //Command_GetPos(0,0);
     PrintToServer("Thinking the watchers took %.4f ms", 1000*(GetEngineTime()-fTimestamp));
 }
