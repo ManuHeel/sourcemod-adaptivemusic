@@ -1,3 +1,24 @@
+#include <sourcemod>
+#include <sdktools>
+
+enum struct Zone {
+    float minOrigin[3];
+    float maxOrigin[3];
+    char parameter[64];
+    bool lastKnownZoneStatus;
+}
+
+enum struct ZoneWatcher {
+    bool active;
+    ArrayList zones;
+}
+
+/**
+ * Console command to get the player's position
+ * @param client  Client launching the command (0 for console)
+ * @param args    Console args
+ * @return  Plugin return code
+ */
 public Action Command_GetPos(int client, int args) {
     int player = 1; // Player is always 1 in singleplayer
     float playerPos[3];
@@ -8,6 +29,11 @@ public Action Command_GetPos(int client, int args) {
     return Plugin_Handled;
 }
 
+/**
+ * Get a player's current position
+ * @param player  Player entity index
+ * @return  Return description
+ */
 float[] GetPlayerPos(int player) {
     float vector[3];
     vector = NULL_VECTOR;

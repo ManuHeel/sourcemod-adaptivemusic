@@ -1,6 +1,12 @@
 #include <sourcemod>
 #include <sdktools>
 
+enum struct HealthWatcher {
+    bool active;
+    char parameter[64];
+    float lastKnownHealth;
+}
+
 /**
  * Console command to get the player's health
  * @param client  Client launching the command (0 for console)

@@ -20,10 +20,17 @@ public Plugin myinfo =
 #include "zone-watcher.sp"
 #include "extension.sp"
 
+
+
 enum struct AdaptiveMusicSettings {
-    char bankName[64];
-    char eventPath[64];
+    char bank[64];
+    char event[64];
+    HealthWatcher healthWatcher;
+    ZoneWatcher zoneWatcher;
+    ChasedWatcher chasedWatcher;
 }
+
+AdaptiveMusicSettings mapMusicSettings;
 
 public void OnPluginStart()
 {
@@ -72,28 +79,58 @@ public void OnMapInit() {
 }
 
 int ParseKeyValues(KeyValues kv) {
-    do
-    {
-        char sectionName[64];
-        kv.GetSectionName(sectionName, sizeof sectionName);
-        if (strcmp(sectionName, "adaptive_music") != 0) {
-            PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got %s instead of \"adaptive_music\"");
-            return 1;
-        }
-        if (kv.GotoFirstSubKey(false))
-        {
-            // Current key is a section. Browse it recursively.
-            ParseKeyValues(kv);
+    char sectionName[64];
+    kv.GetSectionName(sectionName, sizeof sectionName);
+    if (strcmp(sectionName, "adaptive_music") != 0) {
+        PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got %s instead of \"adaptive_music\"", sectionName);
+        return 1;
+    }
+    if (kv.GotoFirstSubKey(false)) {
+        do {
+            kv.GetSectionName(sectionName, sizeof sectionName);
+            if (strcmp(sectionName, "globals") == 0) {
+                // Step 1: Get the globals
+                if (kv.GotoFirstSubKey(false)) {
+                    do {
+                        kv.GetSectionName(sectionName, sizeof sectionName);
+                        if (strcmp(sectionName, "bank") == 0) {
+                            // Step 1.1: Get the bank
+                            if (kv.GetDataType(NULL_STRING) != KvData_None) {
+                                char value[64];
+                                kv.GetString(NULL_STRING, value, sizeof value);
+                                mapMusicSettings.bank = value;
+                                PrintToServer("AdaptiveMusic SourceMod Plugin - Bank is %s", mapMusicSettings.bank);
+                            } else {
+                                PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"bank\" key");
+                                return 1;
+                            }
+                        }
+                        if (strcmp(sectionName, "event") == 0) {
+                            // Step 1.2: Get the event
+                            if (kv.GetDataType(NULL_STRING) != KvData_None) {
+                                char value[64];
+                                kv.GetString(NULL_STRING, value, sizeof value);
+                                mapMusicSettings.event = value;
+                                PrintToServer("AdaptiveMusic SourceMod Plugin - Event is %s", mapMusicSettings.event);
+                            } else {
+                                PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"event\" key");
+                                return 1;
+                            }
+                        }
+                        //kv.GoBack();
+                    } while (kv.GotoNextKey(false));
+                } else {
+                    PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"globals\" section");
+                    return 1;
+                }
+
+            }
             kv.GoBack();
-        }
-        else
-        {
-            // Current key is a regular key, or an empty section.
-            PrintToServer("Key");
-            PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"adaptive_music\" section");
-            return 1;
-        }
-    } while (kv.GotoNextKey(false));
+        } while (kv.GotoNextKey(false));
+    } else {
+        PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"adaptive_music\" section");
+        return 1;
+    }
     return 0;
 }
 

@@ -1,6 +1,12 @@
 #include <sourcemod>
 #include <sdktools>
 
+enum struct ChasedWatcher {
+    bool active;
+    char parameter[64];
+    float lastKnownChasedStatus;
+}
+
 // List of entity classnames we can consider as enemies
 char enemies[][] = {
     "npc_advisor",
