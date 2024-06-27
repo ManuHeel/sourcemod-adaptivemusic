@@ -42,3 +42,13 @@ float[] GetPlayerPos(int player) {
     }
     return vector;
 }
+
+bool IsVectorWithinBounds(float vector[3], float minOrigin[3], float maxOrigin[3]) {
+    if (
+            (vector[0] >= minOrigin[0] && vector[0] <= maxOrigin[0]) &&
+            (vector[1] >= minOrigin[1] && vector[1] <= maxOrigin[1]) &&
+            (vector[2] >= minOrigin[2] && vector[2] <= maxOrigin[2])) {
+        return true;
+    }
+    return false;
+}

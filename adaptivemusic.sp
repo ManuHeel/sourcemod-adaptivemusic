@@ -30,6 +30,8 @@ enum struct AdaptiveMusicSettings {
 
 AdaptiveMusicSettings mapMusicSettings;
 
+int musicPlayer = 1;
+
 public void OnPluginStart()
 {
     PrintToServer("AdaptiveMusic SourceMod Plugin - Loaded");
@@ -73,6 +75,7 @@ public void OnMapInit() {
             adaptiveMusicAvailable = false;
         } else {
             adaptiveMusicAvailable = true;
+            InitAdaptiveMusic();
         }
     }
 }
@@ -158,6 +161,7 @@ int ParseKeyValues(KeyValues kv) {
                                 return 1;
                             }
                         }else if (strcmp(sectionName, "zones") == 0) {
+                            mapMusicSettings.zoneWatcher.zones = new ArrayList(128);
                             // Step 1.3 (for ZoneWatcher): Get the zones values
                             if (kv.GotoFirstSubKey(false)) {
                                 do {
@@ -204,6 +208,7 @@ int ParseKeyValues(KeyValues kv) {
                                             return 1;
                                         }
                                     }
+                                    kv.GoBack();
                                 } while (kv.GotoNextKey(false));
                             } else {
                                 PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watchers.zones\" section");
@@ -226,44 +231,27 @@ int ParseKeyValues(KeyValues kv) {
     return 0;
 }
 
-// COPYPAAASTE
-/*
-void ParseKeyValuesSandbox(KeyValues kv)
-{
-    do
-    {
-        char sectionName[64];
-        kv.GetSectionName(sectionName, sizeof sectionName);
-        PrintToServer("Section Name: %s", sectionName);
-        if (kv.GotoFirstSubKey(false))
-        {
-            PrintToServer("Section");
-            // Current key is a section. Browse it recursively.
-            ParseKeyValues(kv);
-            kv.GoBack();
-        }
-        else
-        {
-            // Current key is a regular key, or an empty section.
-            PrintToServer("Key");
-            if (kv.GetDataType(NULL_STRING) != KvData_None)
-            {
-                // Read value of key here (use NULL_STRING as key name). You can
-                // also get the key name by using kv.GetSectionName here.
-                char value[128];
-                kv.GetSectionName(sectionName, sizeof sectionName);
-                kv.GetString(NULL_STRING, value, sizeof value);
-                PrintToServer("%s = %s", sectionName, value);
-
-            }
-            else
-            {
-                // Found an empty sub section. It can be handled here if necessary.
-            }
-        }
-    } while (kv.GotoNextKey(false));
+void InitAdaptiveMusic(){
+    // Set the bank and event for the map
+    LoadBank(mapMusicSettings.bank);
+    StartEvent(mapMusicSettings.event);
+    // Set the watchers
+    if (strcmp(mapMusicSettings.healthWatcher.parameter, NULL_STRING) != 0) {
+        mapMusicSettings.healthWatcher.active = true;
+    } else {
+        mapMusicSettings.healthWatcher.active = false;
+    }
+    if (strcmp(mapMusicSettings.chasedWatcher.parameter, NULL_STRING) != 0) {
+        mapMusicSettings.chasedWatcher.active = true;
+    } else {
+        mapMusicSettings.chasedWatcher.active = false;
+    }
+    if (mapMusicSettings.zoneWatcher.zones.Length > 0) {
+        mapMusicSettings.zoneWatcher.active = true;
+    } else {
+        mapMusicSettings.zoneWatcher.active = false;
+    }
 }
-*/
 
 int thinkPeriod = 10;
 bool knownPausedState = false; 
@@ -279,7 +267,6 @@ public void OnGameFrame() {
             SetFMODPausedState(1);
             knownPausedState = true;
         }
-
         // Think the watchers
         int gameTick = GetGameTickCount();
         if (isServerProcessing && Modulo(gameTick, thinkPeriod) == 0) {
@@ -291,9 +278,21 @@ public void OnGameFrame() {
  * Run all the watchers' thinking system
  */
 public void Think() {
-    //float fTimestamp = GetEngineTime();
-    //Command_GetHealth(0, 0)
+    float fTimestamp = GetEngineTime();
+    if (mapMusicSettings.zoneWatcher.active) {
+        // ZoneWatcher think
+        for (int i = 0; i < mapMusicSettings.zoneWatcher.zones.Length; i++)
+        {
+            Zone zone;
+            mapMusicSettings.zoneWatcher.zones.GetArray(mapMusicSettings.zoneWatcher.zones.Length - 1, zone, sizeof(zone));
+            float minOrigin[3] = zone.minOrigin;
+            float maxOrigin[3] = zone.maxOrigin;
+            bool playerInZone = IsVectorWithinBounds(GetPlayerPos, zone.minOrigin, zone.maxOrigin);
+            if (playerInZone == true && mapMusicSettings.zoneWatcher.zones.Get(i).lastKnownZoneStatus == false) {
+            }
+        }
+    }
     //Command_GetChasedCount(0, 0);
     //Command_GetPos(0,0);
-    //PrintToServer("Thinking the watchers took %.4f ms", 1000*(GetEngineTime()-fTimestamp));
+    PrintToServer("Thinking the watchers took %.4f ms", 1000*(GetEngineTime()-fTimestamp));
 }

@@ -4,7 +4,7 @@
 enum struct ChasedWatcher {
     bool active;
     char parameter[64];
-    float lastKnownChasedStatus;
+    float lastKnownChasedCount;
 }
 
 // List of entity classnames we can consider as enemies
