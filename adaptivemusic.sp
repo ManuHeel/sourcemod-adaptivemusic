@@ -20,8 +20,6 @@ public Plugin myinfo =
 #include "zone-watcher.sp"
 #include "extension.sp"
 
-
-
 enum struct AdaptiveMusicSettings {
     char bank[64];
     char event[64];
@@ -48,6 +46,7 @@ public void OnPluginStart()
 }
 
 int adaptiveMusicAvailable = false;
+
 
 public void OnMapInit() {
     // Parse the KeyValues of the map
@@ -117,13 +116,106 @@ int ParseKeyValues(KeyValues kv) {
                                 return 1;
                             }
                         }
-                        //kv.GoBack();
                     } while (kv.GotoNextKey(false));
                 } else {
                     PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"globals\" section");
                     return 1;
                 }
+            } else if (strcmp(sectionName, "watcher") == 0) {
+                // Step 2: Get the watchers
+                char watcherType[64];
+                if (kv.GotoFirstSubKey(false)) {
+                    do {
+                        kv.GetSectionName(sectionName, sizeof sectionName);
+                        if (strcmp(sectionName, "type") == 0) {
+                            // Step 1.1: Get the watcher type
+                            if (kv.GetDataType(NULL_STRING) != KvData_None) {
+                                char value[64];
+                                kv.GetString(NULL_STRING, value, sizeof value);
+                                watcherType = value;
+                                PrintToServer("AdaptiveMusic SourceMod Plugin - Watcher type is %s", watcherType);
+                            } else {
+                                PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.type\" key");
+                                return 1;
+                            }
+                        } else if (strcmp(sectionName, "parameter") == 0) {
+                            // Step 1.2: Get the parameter
+                            if (kv.GetDataType(NULL_STRING) != KvData_None) {
+                                char value[64];
+                                kv.GetString(NULL_STRING, value, sizeof value);
+                                if (strcmp(watcherType, "health")) {
+                                    mapMusicSettings.healthWatcher.parameter = value;
+                                    PrintToServer("AdaptiveMusic SourceMod Plugin - HealthWatcher parameter is %s", value);
+                                } else if (strcmp(watcherType, "chased")) {
+                                    mapMusicSettings.chasedWatcher.parameter = value;
+                                    PrintToServer("AdaptiveMusic SourceMod Plugin - ChasedWatcher parameter is %s", value);
+                                } else if (strcmp(watcherType, "zone")) {
+                                    PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Cannot assign a parameter (found %s) to a global ZoneWatcher: please assign to a zone sub-key", value);
+                                    return 1;
+                                }
+                            } else {
+                                PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.parameter\" key");
+                                return 1;
+                            }
+                        }else if (strcmp(sectionName, "zones") == 0) {
+                            // Step 1.3 (for ZoneWatcher): Get the zones values
+                            if (kv.GotoFirstSubKey(false)) {
+                                do {
+                                    kv.GetSectionName(sectionName, sizeof sectionName);
+                                    if (strcmp(sectionName, "zone") == 0) {
+                                        Zone zone;
+                                        if (kv.GotoFirstSubKey(false)) {
+                                            do {
+                                                kv.GetSectionName(sectionName, sizeof sectionName);
+                                                if (strcmp(sectionName, "parameter") == 0) {
+                                                    // Step 1.3.1: Get the zone parameter
+                                                    if (kv.GetDataType(NULL_STRING) != KvData_None) {
+                                                        char value[64];
+                                                        kv.GetString(NULL_STRING, value, sizeof value);
+                                                        zone.parameter = value;
+                                                        PrintToServer("AdaptiveMusic SourceMod Plugin - Zone parameter is %s", zone.parameter);
+                                                    } else {
+                                                        PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.zones.zone.parameter\" key");
+                                                        return 1;
+                                                    }
+                                                } else if (strcmp(sectionName, "min_origin") == 0) {
+                                                    // Step 1.3.2: Get the zone minOrigin
+                                                    if (kv.GetDataType(NULL_STRING) != KvData_None) {
+                                                        KvGetVector(kv, NULL_STRING, zone.minOrigin);
+                                                        PrintToServer("AdaptiveMusic SourceMod Plugin - Zone minOrigin is [%f,%f,%f]", zone.minOrigin[0], zone.minOrigin[1], zone.minOrigin[2]);
+                                                    } else {
+                                                        PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.zones.zone.min_origin\" key");
+                                                        return 1;
+                                                    }
+                                                } else if (strcmp(sectionName, "max_origin") == 0) {
+                                                    // Step 1.3.3: Get the zone maxOrigin
+                                                    if (kv.GetDataType(NULL_STRING) != KvData_None) {
+                                                        KvGetVector(kv, NULL_STRING, zone.maxOrigin);
+                                                        PrintToServer("AdaptiveMusic SourceMod Plugin - Zone maxOrigin is [%f,%f,%f]", zone.maxOrigin[0], zone.maxOrigin[1], zone.maxOrigin[2]);
+                                                    } else {
+                                                        PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.zones.zone.max_origin\" key");
+                                                        return 1;
+                                                    }
+                                                }
+                                            } while (kv.GotoNextKey(false));
+                                            mapMusicSettings.zoneWatcher.zones.PushArray(zone, sizeof(zone)); // TODO: Fix this
+                                        } else {
+                                            PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watchers.zones.zone\" section");
+                                            return 1;
+                                        }
+                                    }
+                                } while (kv.GotoNextKey(false));
+                            } else {
+                                PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watchers.zones\" section");
+                                return 1;
+                            }
+                        }
 
+                    } while (kv.GotoNextKey(false));
+                } else {
+                    PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"glowatcherbals\" section");
+                    return 1;
+                }
             }
             kv.GoBack();
         } while (kv.GotoNextKey(false));
