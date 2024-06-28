@@ -4,7 +4,7 @@
 enum struct HealthWatcher {
     bool active;
     char parameter[64];
-    float lastKnownHealth;
+    int lastKnownHealth;
 }
 
 /**

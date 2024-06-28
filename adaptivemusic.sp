@@ -148,13 +148,13 @@ int ParseKeyValues(KeyValues kv) {
                             if (kv.GetDataType(NULL_STRING) != KvData_None) {
                                 char value[64];
                                 kv.GetString(NULL_STRING, value, sizeof value);
-                                if (strcmp(watcherType, "health")) {
+                                if (strcmp(watcherType, "health") == 0) {
                                     mapMusicSettings.healthWatcher.parameter = value;
                                     PrintToServer("AdaptiveMusic SourceMod Plugin - HealthWatcher parameter is %s", value);
-                                } else if (strcmp(watcherType, "chased")) {
+                                } else if (strcmp(watcherType, "chased") == 0) {
                                     mapMusicSettings.chasedWatcher.parameter = value;
                                     PrintToServer("AdaptiveMusic SourceMod Plugin - ChasedWatcher parameter is %s", value);
-                                } else if (strcmp(watcherType, "zone")) {
+                                } else if (strcmp(watcherType, "zone") == 0) {
                                     PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Cannot assign a parameter (found %s) to a global ZoneWatcher: please assign to a zone sub-key", value);
                                     return 1;
                                 }
@@ -312,6 +312,22 @@ public void Think() {
                 SetFMODGlobalParameter(zoneWatcherZones[i].parameter, 0.0);
                 zoneWatcherZones[i].lastKnownZoneStatus = false;
             }
+        }
+    }
+    if (mapMusicSettings.healthWatcher.active) {
+        // HealthWatcher think
+        int health = GetPlayerHealth(musicPlayer);
+        if (health != mapMusicSettings.healthWatcher.lastKnownHealth) {
+            SetFMODGlobalParameter(mapMusicSettings.healthWatcher.parameter, float(health));
+            mapMusicSettings.healthWatcher.lastKnownHealth = health;
+        }
+    }
+    if (mapMusicSettings.chasedWatcher.active) {
+        // ChasedWatcher think
+        int chasedCount = GetPlayerChasedCount(musicPlayer);
+        if (chasedCount != mapMusicSettings.chasedWatcher.lastKnownChasedCount) {
+            SetFMODGlobalParameter(mapMusicSettings.chasedWatcher.parameter, float(chasedCount));
+            mapMusicSettings.chasedWatcher.lastKnownChasedCount = chasedCount;
         }
     }
     PrintToServer("Thinking the watchers took %.4f ms", 1000*(GetEngineTime()-fTimestamp));
