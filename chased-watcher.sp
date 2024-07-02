@@ -59,7 +59,7 @@ public void ChasedWatcher_Init() {
  * @return  Plugin return code
  */
 public Action Command_GetChasedCount(int client, int args) {
-    int player = 1; // Player is always 1 in singleplayer
+    int player = 1; // Player is usually 1 in singleplayer
     int playerChasedCount = GetPlayerChasedCount(player);
     if (playerChasedCount >= 0) {
         PrintToServer("AdaptiveMusic SourceMod Plugin - Player chased by %i ennemies", playerChasedCount);

@@ -26,11 +26,12 @@ enum struct AdaptiveMusicSettings {
     HealthWatcher healthWatcher;
     ZoneWatcher zoneWatcher;
     ChasedWatcher chasedWatcher;
+    // TODO: SuitWatcher
 }
 
 AdaptiveMusicSettings mapMusicSettings;
 
-int musicPlayer = 1;
+int musicPlayer = 0;
 
 public void OnPluginStart()
 {
@@ -45,10 +46,20 @@ public void OnPluginStart()
     RegAdminCmd("am_startevent", Command_StartEvent, ADMFLAG_GENERIC);
     RegAdminCmd("am_stopevent", Command_StopEvent, ADMFLAG_GENERIC);
     RegAdminCmd("am_setglobalparameter", Command_SetGlobalParameter, ADMFLAG_GENERIC);
+    // Hook events
+    HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 }
 
 int adaptiveMusicAvailable = false;
 
+public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast){
+    musicPlayer = event.GetInt("userid");
+    musicPlayer = FindEntityByClassname(-1, "player");
+    PrintToServer("AdaptiveMusic SourceMod Plugin - Player with entity no. %i spawned", musicPlayer);
+    if (adaptiveMusicAvailable) {
+        InitAdaptiveMusic();
+    }
+}
 
 public void OnMapInit() {
     // Parse the KeyValues of the map
@@ -77,7 +88,6 @@ public void OnMapInit() {
             StopAdaptiveMusic();
         } else {
             adaptiveMusicAvailable = true;
-            InitAdaptiveMusic();
         }
     }
 }
@@ -278,7 +288,7 @@ int thinkPeriod = 10;
 bool knownPausedState = false; 
 
 public void OnGameFrame() {
-    if (adaptiveMusicAvailable) {
+    if (adaptiveMusicAvailable && musicPlayer > 0) {
         bool isServerProcessing = IsServerProcessing()
         // Handle if the Adaptive Music should be paused or not
         if (isServerProcessing && (knownPausedState == true)) {

@@ -22,7 +22,7 @@ Zone zoneWatcherZones[16];
  * @return  Plugin return code
  */
 public Action Command_GetPos(int client, int args) {
-    int player = 1; // Player is always 1 in singleplayer
+    int player = 1; // Player is usually 1 in singleplayer
     float playerPos[3];
     playerPos = GetPlayerPos(player);
     if (!IsNullVector(playerPos)) {
