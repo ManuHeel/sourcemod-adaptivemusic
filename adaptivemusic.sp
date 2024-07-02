@@ -92,6 +92,15 @@ public void OnMapInit() {
     }
 }
 
+public void OnMapStart() {
+    // If the player is already there (map load or else), launch the music right away 
+    musicPlayer = FindEntityByClassname(-1, "player");
+    PrintToServer("AdaptiveMusic SourceMod Plugin - Player with entity no. %i found. Launching music", musicPlayer);
+    if (adaptiveMusicAvailable) {
+        InitAdaptiveMusic();
+    }
+}
+
 int ParseKeyValues(KeyValues kv) {
     char sectionName[64];
     kv.GetSectionName(sectionName, sizeof sectionName);
