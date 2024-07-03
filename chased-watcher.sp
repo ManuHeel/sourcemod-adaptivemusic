@@ -39,17 +39,19 @@ char enemies[][] = {
     "npc_zombie_torso",
     "npc_zombine"
 };
-ArrayList enemiesList;
 
 /**
- * Init the chased watcher
+ * Checks if the ennemy class is considered an ennemy
+ * @param ennemyClass The entity class of the NPC
+ * @return True if the class is considered an ennemy, false otherwise
  */
-public void ChasedWatcher_Init() {
-    // Set vars
-    enemiesList = new ArrayList(64);
+bool IsNPCEnnemy(char[] ennemyClass){
     for (int i = 0; i < sizeof(enemies); i++) {
-        enemiesList.PushString(enemies[i]);
+        if (strcmp(ennemyClass, enemies[i]) == 0) {
+            return true;
+        }
     }
+    return false;
 }
 
 /**
@@ -78,7 +80,7 @@ int GetPlayerChasedCount(int player) {
     while (entity != -1) {
         char entityClassName[128];
         GetEntityClassname(entity, entityClassName, sizeof entityClassName);
-        if (FindStringInArray(enemiesList, entityClassName) != -1 && HasEntProp(entity, Prop_Data, "m_hEnemy") && HasEntProp(entity, Prop_Data, "m_lifeState")) {
+        if (IsNPCEnnemy(entityClassName) && HasEntProp(entity, Prop_Data, "m_hEnemy") && HasEntProp(entity, Prop_Data, "m_lifeState")) {
             int enemyEntity = GetEntPropEnt(entity, Prop_Data, "m_hEnemy");
             int lifeState = GetEntProp(entity, Prop_Data, "m_lifeState"); // lifeState is 1 if the entity is dead
             if (!lifeState && enemyEntity == player) {

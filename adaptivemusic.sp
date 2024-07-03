@@ -36,8 +36,6 @@ int musicPlayer = 0;
 public void OnPluginStart()
 {
     PrintToServer("AdaptiveMusic SourceMod Plugin - Loaded");
-    // Init watchers
-    ChasedWatcher_Init();
     // Register Commands
     RegAdminCmd("am_getpos", Command_GetPos, ADMFLAG_GENERIC);
     RegAdminCmd("am_gethealth", Command_GetHealth, ADMFLAG_GENERIC);
