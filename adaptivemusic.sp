@@ -16,6 +16,7 @@ public Plugin myinfo =
 
 #include "helpers.sp"
 #include "health-watcher.sp"
+#include "suit-watcher.sp"
 #include "chased-watcher.sp"
 #include "zone-watcher.sp"
 #include "extension.sp"
@@ -24,9 +25,9 @@ enum struct AdaptiveMusicSettings {
     char bank[64];
     char event[64];
     HealthWatcher healthWatcher;
+    SuitWatcher suitWatcher;
     ZoneWatcher zoneWatcher;
     ChasedWatcher chasedWatcher;
-    // TODO: SuitWatcher
 }
 
 AdaptiveMusicSettings mapMusicSettings;
@@ -39,6 +40,7 @@ public void OnPluginStart()
     // Register Commands
     RegAdminCmd("am_getpos", Command_GetPos, ADMFLAG_GENERIC);
     RegAdminCmd("am_gethealth", Command_GetHealth, ADMFLAG_GENERIC);
+    RegAdminCmd("am_getsuitstatus", Command_GetSuitStatus, ADMFLAG_GENERIC);
     RegAdminCmd("am_getchasedcount", Command_GetChasedCount, ADMFLAG_GENERIC);
     RegAdminCmd("am_loadbank", Command_LoadBank, ADMFLAG_GENERIC);
     RegAdminCmd("am_startevent", Command_StartEvent, ADMFLAG_GENERIC);
@@ -168,6 +170,9 @@ int ParseKeyValues(KeyValues kv) {
                                 if (strcmp(watcherType, "health") == 0) {
                                     mapMusicSettings.healthWatcher.parameter = value;
                                     PrintToServer("AdaptiveMusic SourceMod Plugin - HealthWatcher parameter is %s", value);
+                                } else if (strcmp(watcherType, "suit") == 0) {
+                                    mapMusicSettings.suitWatcher.parameter = value;
+                                    PrintToServer("AdaptiveMusic SourceMod Plugin - SuitWatcher parameter is %s", value);
                                 } else if (strcmp(watcherType, "chased") == 0) {
                                     mapMusicSettings.chasedWatcher.parameter = value;
                                     PrintToServer("AdaptiveMusic SourceMod Plugin - ChasedWatcher parameter is %s", value);
@@ -261,6 +266,11 @@ void InitAdaptiveMusic(){
     } else {
         mapMusicSettings.healthWatcher.active = false;
     }
+    if (strcmp(mapMusicSettings.suitWatcher.parameter, NULL_STRING) != 0) {
+        mapMusicSettings.suitWatcher.active = true;
+    } else {
+        mapMusicSettings.suitWatcher.active = false;
+    }
     if (strcmp(mapMusicSettings.chasedWatcher.parameter, NULL_STRING) != 0) {
         mapMusicSettings.chasedWatcher.active = true;
     } else {
@@ -286,6 +296,7 @@ void StopAdaptiveMusic(){
     }
     // Reset the watchers
     mapMusicSettings.healthWatcher.active = false;
+    mapMusicSettings.suitWatcher.active = false;
     mapMusicSettings.chasedWatcher.active = false;
     mapMusicSettings.zoneWatcher.active = false;
     mapMusicSettings.zoneWatcher.zoneCount = 0;
@@ -337,6 +348,14 @@ public void Think() {
         if (health != mapMusicSettings.healthWatcher.lastKnownHealth) {
             SetFMODGlobalParameter(mapMusicSettings.healthWatcher.parameter, float(health));
             mapMusicSettings.healthWatcher.lastKnownHealth = health;
+        }
+    }
+    if (mapMusicSettings.suitWatcher.active) {
+        // SuitWatcher think
+        int suitStatus = GetPlayerSuitStatus(musicPlayer);
+        if (suitStatus != mapMusicSettings.suitWatcher.lastKnownSuitStatus) {
+            SetFMODGlobalParameter(mapMusicSettings.suitWatcher.parameter, float(suitStatus));
+            mapMusicSettings.suitWatcher.lastKnownSuitStatus = suitStatus;
         }
     }
     if (mapMusicSettings.chasedWatcher.active) {
