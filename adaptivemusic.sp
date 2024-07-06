@@ -19,6 +19,7 @@ public Plugin myinfo =
 #include "suit-watcher.sp"
 #include "chased-watcher.sp"
 #include "zone-watcher.sp"
+#include "entity-alive-watcher.sp"
 #include "extension.sp"
 
 enum struct AdaptiveMusicSettings {
@@ -28,6 +29,7 @@ enum struct AdaptiveMusicSettings {
     SuitWatcher suitWatcher;
     ZoneWatcher zoneWatcher;
     ChasedWatcher chasedWatcher;
+    EntityAliveWatcher entityAliveWatcher;
 }
 
 AdaptiveMusicSettings mapMusicSettings;
@@ -37,11 +39,13 @@ int musicPlayer = 0;
 public void OnPluginStart()
 {
     PrintToServer("AdaptiveMusic SourceMod Plugin - Loaded");
-    // Register Commands
+    // Debug watcher commands
     RegAdminCmd("am_getpos", Command_GetPos, ADMFLAG_GENERIC);
     RegAdminCmd("am_gethealth", Command_GetHealth, ADMFLAG_GENERIC);
     RegAdminCmd("am_getsuitstatus", Command_GetSuitStatus, ADMFLAG_GENERIC);
     RegAdminCmd("am_getchasedcount", Command_GetChasedCount, ADMFLAG_GENERIC);
+    RegAdminCmd("am_isentityalive", Command_IsEntityAlive, ADMFLAG_GENERIC);
+    // Debug FMOD commands
     RegAdminCmd("am_loadbank", Command_LoadBank, ADMFLAG_GENERIC);
     RegAdminCmd("am_startevent", Command_StartEvent, ADMFLAG_GENERIC);
     RegAdminCmd("am_stopevent", Command_StopEvent, ADMFLAG_GENERIC);
@@ -148,6 +152,7 @@ int ParseKeyValues(KeyValues kv) {
             } else if (strcmp(sectionName, "watcher") == 0) {
                 // Step 2: Get the watchers
                 char watcherType[64];
+                char entityClassname[128];
                 if (kv.GotoFirstSubKey(false)) {
                     do {
                         kv.GetSectionName(sectionName, sizeof sectionName);
@@ -179,14 +184,33 @@ int ParseKeyValues(KeyValues kv) {
                                 } else if (strcmp(watcherType, "zone") == 0) {
                                     PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Cannot assign a parameter (found %s) to a global ZoneWatcher: please assign to a zone sub-key", value);
                                     return 1;
+                                } else if (strcmp(watcherType, "entity_alive") == 0) {
+                                    mapMusicSettings.entityAliveWatcher.parameter = value;
+                                    PrintToServer("AdaptiveMusic SourceMod Plugin - EntityAlive parameter is %s", value);
                                 }
                             } else {
                                 PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.parameter\" key");
                                 return 1;
                             }
-                        }else if (strcmp(sectionName, "zones") == 0) {
+                        } else if (strcmp(sectionName, "entity_classname") == 0) {
+                            // Step 1.3: Get the entity_classname
+                            if (kv.GetDataType(NULL_STRING) != KvData_None) {
+                                char value[64];
+                                kv.GetString(NULL_STRING, value, sizeof value);
+                                if (strcmp(watcherType, "entity_alive") == 0) {
+                                    mapMusicSettings.entityAliveWatcher.entityClassname = value;
+                                    PrintToServer("AdaptiveMusic SourceMod Plugin - EntityAlive class name is %s", value);
+                                } else {
+                                    PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got a \"watcher.entity_classname\" key for a watcher type that does not accept entity class names");
+                                    return 1;                                    
+                                }
+                            } else {
+                                PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.parameter\" key");
+                                return 1;
+                            }
+                        } else if (strcmp(sectionName, "zones") == 0) {
                             mapMusicSettings.zoneWatcher.zoneCount = 0;
-                            // Step 1.3 (for ZoneWatcher): Get the zones values
+                            // Step 1.4 (for ZoneWatcher): Get the zones values
                             if (kv.GotoFirstSubKey(false)) {
                                 do {
                                     kv.GetSectionName(sectionName, sizeof sectionName);
@@ -235,6 +259,7 @@ int ParseKeyValues(KeyValues kv) {
                                     }
                                     kv.GoBack();
                                 } while (kv.GotoNextKey(false));
+                                kv.GoBack();
                             } else {
                                 PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watchers.zones\" section");
                                 return 1;
@@ -281,6 +306,11 @@ void InitAdaptiveMusic(){
     } else {
         mapMusicSettings.zoneWatcher.active = false;
     }
+    if (strcmp(mapMusicSettings.entityAliveWatcher.parameter, NULL_STRING) != 0) {
+        mapMusicSettings.entityAliveWatcher.active = true;
+    } else {
+        mapMusicSettings.entityAliveWatcher.active = false;
+    }
 }
 
 void StopAdaptiveMusic(){
@@ -300,6 +330,7 @@ void StopAdaptiveMusic(){
     mapMusicSettings.chasedWatcher.active = false;
     mapMusicSettings.zoneWatcher.active = false;
     mapMusicSettings.zoneWatcher.zoneCount = 0;
+    mapMusicSettings.entityAliveWatcher.active = false;
 }
 
 int thinkPeriod = 10;
@@ -364,6 +395,19 @@ public void Think() {
         if (chasedCount != mapMusicSettings.chasedWatcher.lastKnownChasedCount) {
             SetFMODGlobalParameter(mapMusicSettings.chasedWatcher.parameter, float(chasedCount));
             mapMusicSettings.chasedWatcher.lastKnownChasedCount = chasedCount;
+        }
+    }
+    if (mapMusicSettings.entityAliveWatcher.active) {
+        // EntityAliveWatcher think
+        bool isEntityAlive = IsEntityAlive(mapMusicSettings.entityAliveWatcher.entityClassname);
+        if (isEntityAlive) {
+            PrintToServer("AdaptiveMusic SourceMod Plugin - Entity %s is alive", mapMusicSettings.entityAliveWatcher.entityClassname);
+        } else {
+            PrintToServer("AdaptiveMusic SourceMod Plugin - Entity %s is not alive (or not found)", mapMusicSettings.entityAliveWatcher.entityClassname);
+        }
+        if (isEntityAlive != mapMusicSettings.entityAliveWatcher.lastKnownEntityAliveStatus) {
+            SetFMODGlobalParameter(mapMusicSettings.entityAliveWatcher.parameter, float(isEntityAlive));
+            mapMusicSettings.entityAliveWatcher.lastKnownEntityAliveStatus = isEntityAlive;
         }
     }
     PrintToServer("Thinking the watchers took %.4f ms", 1000*(GetEngineTime()-fTimestamp));
