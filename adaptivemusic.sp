@@ -152,7 +152,6 @@ int ParseKeyValues(KeyValues kv) {
             } else if (strcmp(sectionName, "watcher") == 0) {
                 // Step 2: Get the watchers
                 char watcherType[64];
-                char entityClassname[128];
                 if (kv.GotoFirstSubKey(false)) {
                     do {
                         kv.GetSectionName(sectionName, sizeof sectionName);
