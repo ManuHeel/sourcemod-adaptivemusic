@@ -20,6 +20,7 @@ public Plugin myinfo =
 #include "chased-watcher.sp"
 #include "zone-watcher.sp"
 #include "entity-alive-watcher.sp"
+#include "entity-sequence-watcher.sp"
 #include "extension.sp"
 
 enum struct AdaptiveMusicSettings {
@@ -30,6 +31,7 @@ enum struct AdaptiveMusicSettings {
     ZoneWatcher zoneWatcher;
     ChasedWatcher chasedWatcher;
     EntityAliveWatcher entityAliveWatcher;
+    EntitySequenceWatcher entitySequenceWatcher
 }
 
 AdaptiveMusicSettings mapMusicSettings;
@@ -45,6 +47,7 @@ public void OnPluginStart()
     RegAdminCmd("am_getsuitstatus", Command_GetSuitStatus, ADMFLAG_GENERIC);
     RegAdminCmd("am_getchasedcount", Command_GetChasedCount, ADMFLAG_GENERIC);
     RegAdminCmd("am_isentityalive", Command_IsEntityAlive, ADMFLAG_GENERIC);
+    RegAdminCmd("am_getentitysequence", Command_GetEntitySequence, ADMFLAG_GENERIC);
     // Debug FMOD commands
     RegAdminCmd("am_loadbank", Command_LoadBank, ADMFLAG_GENERIC);
     RegAdminCmd("am_startevent", Command_StartEvent, ADMFLAG_GENERIC);
@@ -186,6 +189,9 @@ int ParseKeyValues(KeyValues kv) {
                                 } else if (strcmp(watcherType, "entity_alive") == 0) {
                                     mapMusicSettings.entityAliveWatcher.parameter = value;
                                     PrintToServer("AdaptiveMusic SourceMod Plugin - EntityAlive parameter is %s", value);
+                                } else if (strcmp(watcherType, "entity_sequence") == 0) {
+                                    mapMusicSettings.entitySequenceWatcher.parameter = value;
+                                    PrintToServer("AdaptiveMusic SourceMod Plugin - EntitySequence parameter is %s", value);
                                 }
                             } else {
                                 PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.parameter\" key");
@@ -198,18 +204,37 @@ int ParseKeyValues(KeyValues kv) {
                                 kv.GetString(NULL_STRING, value, sizeof value);
                                 if (strcmp(watcherType, "entity_alive") == 0) {
                                     mapMusicSettings.entityAliveWatcher.entityClassname = value;
-                                    PrintToServer("AdaptiveMusic SourceMod Plugin - EntityAlive class name is %s", value);
+                                    PrintToServer("AdaptiveMusic SourceMod Plugin - EntityAlive entity class name is %s", value);
+                                } else if (strcmp(watcherType, "entity_sequence") == 0) {
+                                    mapMusicSettings.entitySequenceWatcher.entityClassname = value;
+                                    PrintToServer("AdaptiveMusic SourceMod Plugin - EntitySequence entity class name is %s", value);
                                 } else {
                                     PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got a \"watcher.entity_classname\" key for a watcher type that does not accept entity class names");
                                     return 1;                                    
                                 }
                             } else {
-                                PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.parameter\" key");
+                                PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.entity_classname\" key");
+                                return 1;
+                            }
+                        } else if (strcmp(sectionName, "entity_name") == 0) {
+                            // Step 1.4: Get the entity_name
+                            if (kv.GetDataType(NULL_STRING) != KvData_None) {
+                                char value[64];
+                                kv.GetString(NULL_STRING, value, sizeof value);
+                                if (strcmp(watcherType, "entity_sequence") == 0) {
+                                    mapMusicSettings.entitySequenceWatcher.entityName = value;
+                                    PrintToServer("AdaptiveMusic SourceMod Plugin - EntitySequence entity name is %s", value);
+                                } else {
+                                    PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got a \"watcher.entity_name\" key for a watcher type that does not accept entity class names");
+                                    return 1;                                    
+                                }
+                            } else {
+                                PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.entity_name\" key");
                                 return 1;
                             }
                         } else if (strcmp(sectionName, "zones") == 0) {
                             mapMusicSettings.zoneWatcher.zoneCount = 0;
-                            // Step 1.4 (for ZoneWatcher): Get the zones values
+                            // Step 1.5 (for ZoneWatcher): Get the zones values
                             if (kv.GotoFirstSubKey(false)) {
                                 do {
                                     kv.GetSectionName(sectionName, sizeof sectionName);
@@ -305,10 +330,15 @@ void InitAdaptiveMusic(){
     } else {
         mapMusicSettings.zoneWatcher.active = false;
     }
-    if (strcmp(mapMusicSettings.entityAliveWatcher.parameter, NULL_STRING) != 0) {
+    if (strcmp(mapMusicSettings.entityAliveWatcher.parameter, NULL_STRING) != 0) { // TODO: Add a check for entityclassname too
         mapMusicSettings.entityAliveWatcher.active = true;
     } else {
         mapMusicSettings.entityAliveWatcher.active = false;
+    }
+    if (strcmp(mapMusicSettings.entitySequenceWatcher.parameter, NULL_STRING) != 0) { // TODO: Add a check for entityclassname and entityname too
+        mapMusicSettings.entitySequenceWatcher.active = true;
+    } else {
+        mapMusicSettings.entitySequenceWatcher.active = false;
     }
 }
 
@@ -330,6 +360,7 @@ void StopAdaptiveMusic(){
     mapMusicSettings.zoneWatcher.active = false;
     mapMusicSettings.zoneWatcher.zoneCount = 0;
     mapMusicSettings.entityAliveWatcher.active = false;
+    mapMusicSettings.entitySequenceWatcher.active = false;
 }
 
 int thinkPeriod = 10;
@@ -399,14 +430,18 @@ public void Think() {
     if (mapMusicSettings.entityAliveWatcher.active) {
         // EntityAliveWatcher think
         bool isEntityAlive = IsEntityAlive(mapMusicSettings.entityAliveWatcher.entityClassname);
-        if (isEntityAlive) {
-            PrintToServer("AdaptiveMusic SourceMod Plugin - Entity %s is alive", mapMusicSettings.entityAliveWatcher.entityClassname);
-        } else {
-            PrintToServer("AdaptiveMusic SourceMod Plugin - Entity %s is not alive (or not found)", mapMusicSettings.entityAliveWatcher.entityClassname);
-        }
         if (isEntityAlive != mapMusicSettings.entityAliveWatcher.lastKnownEntityAliveStatus) {
             SetFMODGlobalParameter(mapMusicSettings.entityAliveWatcher.parameter, float(isEntityAlive));
             mapMusicSettings.entityAliveWatcher.lastKnownEntityAliveStatus = isEntityAlive;
+        }
+    }
+    if (mapMusicSettings.entitySequenceWatcher.active) {
+        // EntitySequenceWatcher think
+        int entitySequence = GetEntitySequence(mapMusicSettings.entitySequenceWatcher.entityClassname, mapMusicSettings.entitySequenceWatcher.entityName);
+        PrintToServer("AdaptiveMusic SourceMod Plugin - Sequence is %i, last known was %i", entitySequence, mapMusicSettings.entitySequenceWatcher.lastKnownEntitySequence);
+        if (entitySequence != mapMusicSettings.entitySequenceWatcher.lastKnownEntitySequence) {
+            SetFMODGlobalParameter(mapMusicSettings.entitySequenceWatcher.parameter, float(entitySequence));
+            mapMusicSettings.entitySequenceWatcher.lastKnownEntitySequence = entitySequence;
         }
     }
     PrintToServer("Thinking the watchers took %.4f ms", 1000*(GetEngineTime()-fTimestamp));
