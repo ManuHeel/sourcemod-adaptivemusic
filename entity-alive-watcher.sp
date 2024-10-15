@@ -16,16 +16,16 @@ enum struct EntityAliveWatcher {
  */
 public Action Command_IsEntityAlive(int client, int args) {
     if (args < 1) {
-        ReplyToCommand(client, "Usage: am_isentityalive <entity_classname>");
+        ReplyToCommand(client, "Usage: amm_isentityalive <entity_classname>");
         return Plugin_Handled;	
     }
     char entityClassname[128];
     GetCmdArgString(entityClassname, sizeof(entityClassname));
     bool isEntityAlive = IsEntityAlive(entityClassname);
     if (isEntityAlive) {
-        PrintToServer("AdaptiveMusic SourceMod Plugin - Entity %s is alive ", entityClassname);
+        PrintToServer("AMM Plugin - Entity %s is alive ", entityClassname);
     } else {
-        PrintToServer("AdaptiveMusic SourceMod Plugin - Entity %s is not alive (or not found)", entityClassname);
+        PrintToServer("AMM Plugin - Entity %s is not alive (or not found)", entityClassname);
     }
     return Plugin_Handled;
 }

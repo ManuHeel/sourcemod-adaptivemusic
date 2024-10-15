@@ -16,7 +16,7 @@ enum struct SuitWatcher {
 public Action Command_GetSuitStatus(int client, int args) {
     int player = 1; // Player is usually 1 in singleplayer
     int playerSuitStatus = GetPlayerSuitStatus(player);
-    PrintToServer("AdaptiveMusic SourceMod Plugin - Player suit status = %i", playerSuitStatus);
+    PrintToServer("AMM Plugin - Player suit status = %i", playerSuitStatus);
     return Plugin_Handled;
 }
 

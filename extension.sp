@@ -11,7 +11,7 @@
 public Action Command_LoadBank(int client, int args) {
     if (args < 1)
     {
-        ReplyToCommand(client, "Usage: am_loadbank <bank_name>");
+        ReplyToCommand(client, "Usage: amm_loadbank <bank_name>");
         return Plugin_Handled;	
     }
     char bankName[512];
@@ -39,7 +39,7 @@ int LoadBank(const char[] bankName) {
 public Action Command_StartEvent(int client, int args) {
     if (args < 1)
     {
-        ReplyToCommand(client, "Usage: am_startevent <event_path>");
+        ReplyToCommand(client, "Usage: amm_startevent <event_path>");
         return Plugin_Handled;	
     }
     char eventPath[512];
@@ -67,7 +67,7 @@ int StartEvent(const char[] eventPath) {
 public Action Command_StopEvent(int client, int args) {
     if (args < 1)
     {
-        ReplyToCommand(client, "Usage: am_stopevent <event_path>");
+        ReplyToCommand(client, "Usage: amm_stopevent <event_path>");
         return Plugin_Handled;	
     }
     char eventPath[512];
@@ -95,7 +95,7 @@ int StopEvent(const char[] eventPath) {
 public Action Command_SetGlobalParameter(int client, int args) {
     if (args < 2)
     {
-        ReplyToCommand(client, "Usage: am_setglobalparameter <parameter_name> <value>");
+        ReplyToCommand(client, "Usage: amm_setglobalparameter <parameter_name> <value>");
         return Plugin_Handled;	
     }
     char parameterName[512];

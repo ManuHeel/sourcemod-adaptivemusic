@@ -17,7 +17,7 @@ enum struct EntitySequenceWatcher {
  */
 public Action Command_GetEntitySequence(int client, int args) {
     if (args < 2) {
-        ReplyToCommand(client, "Usage: am_getentitysequence <entity_classname> <entity_name>");
+        ReplyToCommand(client, "Usage: amm_getentitysequence <entity_classname> <entity_name>");
         return Plugin_Handled;	
     }
     char argsArray[2][128];
@@ -26,9 +26,9 @@ public Action Command_GetEntitySequence(int client, int args) {
     ExplodeString(argsString, " ", argsArray, sizeof(argsArray), 128);
     int entitySequence = GetEntitySequence(argsArray[0], argsArray[1]);
     if (entitySequence != -1) {
-        PrintToServer("AdaptiveMusic SourceMod Plugin - Entity %s (class %s) has its sequence at ID %i", argsArray[1], argsArray[0], entitySequence);
+        PrintToServer("AMM Plugin - Entity %s (class %s) has its sequence at ID %i", argsArray[1], argsArray[0], entitySequence);
     } else {
-        PrintToServer("AdaptiveMusic SourceMod Plugin - Could not find the sequence ID of entity %s (class %s)", argsArray[1], argsArray[0]);
+        PrintToServer("AMM Plugin - Could not find the sequence ID of entity %s (class %s)", argsArray[1], argsArray[0]);
     }
     return Plugin_Handled;
 }

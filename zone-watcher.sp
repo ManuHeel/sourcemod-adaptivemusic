@@ -26,7 +26,7 @@ public Action Command_GetPos(int client, int args) {
     float playerPos[3];
     playerPos = GetPlayerPos(player);
     if (!IsNullVector(playerPos)) {
-        PrintToServer("AdaptiveMusic SourceMod Plugin - Position x=%f, y=%f, z=%f", playerPos[0], playerPos[1], playerPos[2]);
+        PrintToServer("AMM Plugin - Position x=%f, y=%f, z=%f", playerPos[0], playerPos[1], playerPos[2]);
     }
     return Plugin_Handled;
 }

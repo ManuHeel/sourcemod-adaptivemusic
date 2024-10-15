@@ -17,7 +17,7 @@ public Action Command_GetHealth(int client, int args) {
     int player = 1; // Player is usually 1 in singleplayer
     int playerHealth = GetPlayerHealth(player);
     if (playerHealth >= 0) {
-        PrintToServer("AdaptiveMusic SourceMod Plugin - Player health = %i", playerHealth);
+        PrintToServer("AMM Plugin - Player health = %i", playerHealth);
     }
     return Plugin_Handled;
 }

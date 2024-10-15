@@ -40,19 +40,19 @@ int musicPlayer = 0;
 
 public void OnPluginStart()
 {
-    PrintToServer("AdaptiveMusic SourceMod Plugin - Loaded");
+    PrintToServer("AMM Plugin - Loaded");
     // Debug watcher commands
-    RegAdminCmd("am_getpos", Command_GetPos, ADMFLAG_GENERIC);
-    RegAdminCmd("am_gethealth", Command_GetHealth, ADMFLAG_GENERIC);
-    RegAdminCmd("am_getsuitstatus", Command_GetSuitStatus, ADMFLAG_GENERIC);
-    RegAdminCmd("am_getchasedcount", Command_GetChasedCount, ADMFLAG_GENERIC);
-    RegAdminCmd("am_isentityalive", Command_IsEntityAlive, ADMFLAG_GENERIC);
-    RegAdminCmd("am_getentitysequence", Command_GetEntitySequence, ADMFLAG_GENERIC);
+    RegAdminCmd("amm_getpos", Command_GetPos, ADMFLAG_GENERIC);
+    RegAdminCmd("amm_gethealth", Command_GetHealth, ADMFLAG_GENERIC);
+    RegAdminCmd("amm_getsuitstatus", Command_GetSuitStatus, ADMFLAG_GENERIC);
+    RegAdminCmd("amm_getchasedcount", Command_GetChasedCount, ADMFLAG_GENERIC);
+    RegAdminCmd("amm_isentityalive", Command_IsEntityAlive, ADMFLAG_GENERIC);
+    RegAdminCmd("amm_getentitysequence", Command_GetEntitySequence, ADMFLAG_GENERIC);
     // Debug FMOD commands
-    RegAdminCmd("am_loadbank", Command_LoadBank, ADMFLAG_GENERIC);
-    RegAdminCmd("am_startevent", Command_StartEvent, ADMFLAG_GENERIC);
-    RegAdminCmd("am_stopevent", Command_StopEvent, ADMFLAG_GENERIC);
-    RegAdminCmd("am_setglobalparameter", Command_SetGlobalParameter, ADMFLAG_GENERIC);
+    RegAdminCmd("amm_loadbank", Command_LoadBank, ADMFLAG_GENERIC);
+    RegAdminCmd("amm_startevent", Command_StartEvent, ADMFLAG_GENERIC);
+    RegAdminCmd("amm_stopevent", Command_StopEvent, ADMFLAG_GENERIC);
+    RegAdminCmd("amm_setglobalparameter", Command_SetGlobalParameter, ADMFLAG_GENERIC);
     // Hook events
     HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 }
@@ -62,7 +62,7 @@ int adaptiveMusicAvailable = false;
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast){
     musicPlayer = event.GetInt("userid");
     musicPlayer = FindEntityByClassname(-1, "player");
-    PrintToServer("AdaptiveMusic SourceMod Plugin - Player with entity no. %i spawned", musicPlayer);
+    PrintToServer("AMM Plugin - Player with entity no. %i spawned", musicPlayer);
     if (adaptiveMusicAvailable) {
         InitAdaptiveMusic();
     }
@@ -76,21 +76,21 @@ public void OnMapInit() {
     BuildPath( Path_SM, kvFilePath, sizeof( kvFilePath ), "data/adaptivemusic/maps/" )
     StrCat(kvFilePath, sizeof kvFilePath, mapName);
     StrCat(kvFilePath, sizeof kvFilePath, ".kv");
-    PrintToServer("AdaptiveMusic SourceMod Plugin - Trying to open the KeyValues file at %s", kvFilePath);
+    PrintToServer("AMM Plugin - Trying to open the KeyValues file at %s", kvFilePath);
     KeyValues kv = new KeyValues(NULL_STRING);
     kv.ImportFromFile(kvFilePath);
     // Check if we could find and load the KeyValues file
     char firstKey[64];
     kv.GetSectionName(firstKey, sizeof firstKey);
     if (strcmp(firstKey, NULL_STRING) == 0) {
-        PrintToServer("AdaptiveMusic SourceMod Plugin - Could not find or open the KeyValues file at %s", kvFilePath);
+        PrintToServer("AMM Plugin - Could not find or open the KeyValues file at %s", kvFilePath);
         adaptiveMusicAvailable = false;
         StopAdaptiveMusic();
     } else {
-        PrintToServer("AdaptiveMusic SourceMod Plugin - Successfully found and opened the KeyValues file at %s", kvFilePath);
+        PrintToServer("AMM Plugin - Successfully found and opened the KeyValues file at %s", kvFilePath);
         int parsingResult = ParseKeyValues(kv);
         if (parsingResult != 0 ) {
-            PrintToServer("AdaptiveMusic SourceMod Plugin - Could not parse the KeyValues file at %s, error: %i", kvFilePath, parsingResult);
+            PrintToServer("AMM Plugin - Could not parse the KeyValues file at %s, error: %i", kvFilePath, parsingResult);
             adaptiveMusicAvailable = false;
             StopAdaptiveMusic();
         } else {
@@ -102,7 +102,7 @@ public void OnMapInit() {
 public void OnMapStart() {
     // If the player is already there (map load or else), launch the music right away 
     musicPlayer = FindEntityByClassname(-1, "player");
-    PrintToServer("AdaptiveMusic SourceMod Plugin - Player with entity no. %i found. Launching music", musicPlayer);
+    PrintToServer("AMM Plugin - Player with entity no. %i found. Launching music", musicPlayer);
     if (adaptiveMusicAvailable) {
         InitAdaptiveMusic();
     }
@@ -112,7 +112,7 @@ int ParseKeyValues(KeyValues kv) {
     char sectionName[64];
     kv.GetSectionName(sectionName, sizeof sectionName);
     if (strcmp(sectionName, "adaptive_music") != 0) {
-        PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got %s instead of \"adaptive_music\"", sectionName);
+        PrintToServer("AMM Plugin - KeyValues file malformed. Got %s instead of \"adaptive_music\"", sectionName);
         return 1;
     }
     if (kv.GotoFirstSubKey(false)) {
@@ -129,9 +129,9 @@ int ParseKeyValues(KeyValues kv) {
                                 char value[64];
                                 kv.GetString(NULL_STRING, value, sizeof value);
                                 mapMusicSettings.bank = value;
-                                PrintToServer("AdaptiveMusic SourceMod Plugin - Bank is %s", mapMusicSettings.bank);
+                                PrintToServer("AMM Plugin - Bank is %s", mapMusicSettings.bank);
                             } else {
-                                PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"bank\" key");
+                                PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"bank\" key");
                                 return 1;
                             }
                         }
@@ -141,15 +141,15 @@ int ParseKeyValues(KeyValues kv) {
                                 char value[64];
                                 kv.GetString(NULL_STRING, value, sizeof value);
                                 mapMusicSettings.event = value;
-                                PrintToServer("AdaptiveMusic SourceMod Plugin - Event is %s", mapMusicSettings.event);
+                                PrintToServer("AMM Plugin - Event is %s", mapMusicSettings.event);
                             } else {
-                                PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"event\" key");
+                                PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"event\" key");
                                 return 1;
                             }
                         }
                     } while (kv.GotoNextKey(false));
                 } else {
-                    PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"globals\" section");
+                    PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"globals\" section");
                     return 1;
                 }
             } else if (strcmp(sectionName, "watcher") == 0) {
@@ -164,9 +164,9 @@ int ParseKeyValues(KeyValues kv) {
                                 char value[64];
                                 kv.GetString(NULL_STRING, value, sizeof value);
                                 watcherType = value;
-                                PrintToServer("AdaptiveMusic SourceMod Plugin - Watcher type is %s", watcherType);
+                                PrintToServer("AMM Plugin - Watcher type is %s", watcherType);
                             } else {
-                                PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.type\" key");
+                                PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"watcher.type\" key");
                                 return 1;
                             }
                         } else if (strcmp(sectionName, "parameter") == 0) {
@@ -176,25 +176,25 @@ int ParseKeyValues(KeyValues kv) {
                                 kv.GetString(NULL_STRING, value, sizeof value);
                                 if (strcmp(watcherType, "health") == 0) {
                                     mapMusicSettings.healthWatcher.parameter = value;
-                                    PrintToServer("AdaptiveMusic SourceMod Plugin - HealthWatcher parameter is %s", value);
+                                    PrintToServer("AMM Plugin - HealthWatcher parameter is %s", value);
                                 } else if (strcmp(watcherType, "suit") == 0) {
                                     mapMusicSettings.suitWatcher.parameter = value;
-                                    PrintToServer("AdaptiveMusic SourceMod Plugin - SuitWatcher parameter is %s", value);
+                                    PrintToServer("AMM Plugin - SuitWatcher parameter is %s", value);
                                 } else if (strcmp(watcherType, "chased") == 0) {
                                     mapMusicSettings.chasedWatcher.parameter = value;
-                                    PrintToServer("AdaptiveMusic SourceMod Plugin - ChasedWatcher parameter is %s", value);
+                                    PrintToServer("AMM Plugin - ChasedWatcher parameter is %s", value);
                                 } else if (strcmp(watcherType, "zone") == 0) {
-                                    PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Cannot assign a parameter (found %s) to a global ZoneWatcher: please assign to a zone sub-key", value);
+                                    PrintToServer("AMM Plugin - KeyValues file malformed. Cannot assign a parameter (found %s) to a global ZoneWatcher: please assign to a zone sub-key", value);
                                     return 1;
                                 } else if (strcmp(watcherType, "entity_alive") == 0) {
                                     mapMusicSettings.entityAliveWatcher.parameter = value;
-                                    PrintToServer("AdaptiveMusic SourceMod Plugin - EntityAlive parameter is %s", value);
+                                    PrintToServer("AMM Plugin - EntityAlive parameter is %s", value);
                                 } else if (strcmp(watcherType, "entity_sequence") == 0) {
                                     mapMusicSettings.entitySequenceWatcher.parameter = value;
-                                    PrintToServer("AdaptiveMusic SourceMod Plugin - EntitySequence parameter is %s", value);
+                                    PrintToServer("AMM Plugin - EntitySequence parameter is %s", value);
                                 }
                             } else {
-                                PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.parameter\" key");
+                                PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"watcher.parameter\" key");
                                 return 1;
                             }
                         } else if (strcmp(sectionName, "entity_classname") == 0) {
@@ -204,16 +204,16 @@ int ParseKeyValues(KeyValues kv) {
                                 kv.GetString(NULL_STRING, value, sizeof value);
                                 if (strcmp(watcherType, "entity_alive") == 0) {
                                     mapMusicSettings.entityAliveWatcher.entityClassname = value;
-                                    PrintToServer("AdaptiveMusic SourceMod Plugin - EntityAlive entity class name is %s", value);
+                                    PrintToServer("AMM Plugin - EntityAlive entity class name is %s", value);
                                 } else if (strcmp(watcherType, "entity_sequence") == 0) {
                                     mapMusicSettings.entitySequenceWatcher.entityClassname = value;
-                                    PrintToServer("AdaptiveMusic SourceMod Plugin - EntitySequence entity class name is %s", value);
+                                    PrintToServer("AMM Plugin - EntitySequence entity class name is %s", value);
                                 } else {
-                                    PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got a \"watcher.entity_classname\" key for a watcher type that does not accept entity class names");
+                                    PrintToServer("AMM Plugin - KeyValues file malformed. Got a \"watcher.entity_classname\" key for a watcher type that does not accept entity class names");
                                     return 1;                                    
                                 }
                             } else {
-                                PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.entity_classname\" key");
+                                PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"watcher.entity_classname\" key");
                                 return 1;
                             }
                         } else if (strcmp(sectionName, "entity_name") == 0) {
@@ -223,13 +223,13 @@ int ParseKeyValues(KeyValues kv) {
                                 kv.GetString(NULL_STRING, value, sizeof value);
                                 if (strcmp(watcherType, "entity_sequence") == 0) {
                                     mapMusicSettings.entitySequenceWatcher.entityName = value;
-                                    PrintToServer("AdaptiveMusic SourceMod Plugin - EntitySequence entity name is %s", value);
+                                    PrintToServer("AMM Plugin - EntitySequence entity name is %s", value);
                                 } else {
-                                    PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got a \"watcher.entity_name\" key for a watcher type that does not accept entity class names");
+                                    PrintToServer("AMM Plugin - KeyValues file malformed. Got a \"watcher.entity_name\" key for a watcher type that does not accept entity class names");
                                     return 1;                                    
                                 }
                             } else {
-                                PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.entity_name\" key");
+                                PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"watcher.entity_name\" key");
                                 return 1;
                             }
                         } else if (strcmp(sectionName, "zones") == 0) {
@@ -249,27 +249,27 @@ int ParseKeyValues(KeyValues kv) {
                                                         char value[64];
                                                         kv.GetString(NULL_STRING, value, sizeof value);
                                                         zone.parameter = value;
-                                                        PrintToServer("AdaptiveMusic SourceMod Plugin - Zone parameter is %s", zone.parameter);
+                                                        PrintToServer("AMM Plugin - Zone parameter is %s", zone.parameter);
                                                     } else {
-                                                        PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.zones.zone.parameter\" key");
+                                                        PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"watcher.zones.zone.parameter\" key");
                                                         return 1;
                                                     }
                                                 } else if (strcmp(sectionName, "min_origin") == 0) {
                                                     // Step 1.3.2: Get the zone minOrigin
                                                     if (kv.GetDataType(NULL_STRING) != KvData_None) {
                                                         KvGetVector(kv, NULL_STRING, zone.minOrigin);
-                                                        PrintToServer("AdaptiveMusic SourceMod Plugin - Zone minOrigin is [%f,%f,%f]", zone.minOrigin[0], zone.minOrigin[1], zone.minOrigin[2]);
+                                                        PrintToServer("AMM Plugin - Zone minOrigin is [%f,%f,%f]", zone.minOrigin[0], zone.minOrigin[1], zone.minOrigin[2]);
                                                     } else {
-                                                        PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.zones.zone.min_origin\" key");
+                                                        PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"watcher.zones.zone.min_origin\" key");
                                                         return 1;
                                                     }
                                                 } else if (strcmp(sectionName, "max_origin") == 0) {
                                                     // Step 1.3.3: Get the zone maxOrigin
                                                     if (kv.GetDataType(NULL_STRING) != KvData_None) {
                                                         KvGetVector(kv, NULL_STRING, zone.maxOrigin);
-                                                        PrintToServer("AdaptiveMusic SourceMod Plugin - Zone maxOrigin is [%f,%f,%f]", zone.maxOrigin[0], zone.maxOrigin[1], zone.maxOrigin[2]);
+                                                        PrintToServer("AMM Plugin - Zone maxOrigin is [%f,%f,%f]", zone.maxOrigin[0], zone.maxOrigin[1], zone.maxOrigin[2]);
                                                     } else {
-                                                        PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watcher.zones.zone.max_origin\" key");
+                                                        PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"watcher.zones.zone.max_origin\" key");
                                                         return 1;
                                                     }
                                                 }
@@ -277,7 +277,7 @@ int ParseKeyValues(KeyValues kv) {
                                             zoneWatcherZones[mapMusicSettings.zoneWatcher.zoneCount] = zone;
                                             mapMusicSettings.zoneWatcher.zoneCount++;
                                         } else {
-                                            PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watchers.zones.zone\" section");
+                                            PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"watchers.zones.zone\" section");
                                             return 1;
                                         }
                                     }
@@ -285,21 +285,21 @@ int ParseKeyValues(KeyValues kv) {
                                 } while (kv.GotoNextKey(false));
                                 kv.GoBack();
                             } else {
-                                PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"watchers.zones\" section");
+                                PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"watchers.zones\" section");
                                 return 1;
                             }
                         }
 
                     } while (kv.GotoNextKey(false));
                 } else {
-                    PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"glowatcherbals\" section");
+                    PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"glowatcherbals\" section");
                     return 1;
                 }
             }
             kv.GoBack();
         } while (kv.GotoNextKey(false));
     } else {
-        PrintToServer("AdaptiveMusic SourceMod Plugin - KeyValues file malformed. Got an empty \"adaptive_music\" section");
+        PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"adaptive_music\" section");
         return 1;
     }
     return 0;
@@ -438,7 +438,7 @@ public void Think() {
     if (mapMusicSettings.entitySequenceWatcher.active) {
         // EntitySequenceWatcher think
         int entitySequence = GetEntitySequence(mapMusicSettings.entitySequenceWatcher.entityClassname, mapMusicSettings.entitySequenceWatcher.entityName);
-        PrintToServer("AdaptiveMusic SourceMod Plugin - Sequence is %i, last known was %i", entitySequence, mapMusicSettings.entitySequenceWatcher.lastKnownEntitySequence);
+        PrintToServer("AMM Plugin - Sequence is %i, last known was %i", entitySequence, mapMusicSettings.entitySequenceWatcher.lastKnownEntitySequence);
         if (entitySequence != mapMusicSettings.entitySequenceWatcher.lastKnownEntitySequence) {
             SetFMODGlobalParameter(mapMusicSettings.entitySequenceWatcher.parameter, float(entitySequence));
             mapMusicSettings.entitySequenceWatcher.lastKnownEntitySequence = entitySequence;
