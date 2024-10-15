@@ -438,7 +438,6 @@ public void Think() {
     if (mapMusicSettings.entitySequenceWatcher.active) {
         // EntitySequenceWatcher think
         int entitySequence = GetEntitySequence(mapMusicSettings.entitySequenceWatcher.entityClassname, mapMusicSettings.entitySequenceWatcher.entityName);
-        PrintToServer("AMM Plugin - Sequence is %i, last known was %i", entitySequence, mapMusicSettings.entitySequenceWatcher.lastKnownEntitySequence);
         if (entitySequence != mapMusicSettings.entitySequenceWatcher.lastKnownEntitySequence) {
             SetFMODGlobalParameter(mapMusicSettings.entitySequenceWatcher.parameter, float(entitySequence));
             mapMusicSettings.entitySequenceWatcher.lastKnownEntitySequence = entitySequence;
