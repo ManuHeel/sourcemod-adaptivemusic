@@ -43,8 +43,8 @@ public Action Command_GetTriggerStatus(int client, int args) {
  */
 bool IsTriggerToggled(char[] entityClassname, char[] entityName) {
     if (strcmp(entityClassname, "trigger_once") == 0) { 
-        // For trigger_once
-        // We assume they exist when asked for, and as they delete themselves when toggled, we return 0 if they do exist, and 1 if they don't
+        // For trigger_once (only support as of now),...
+        // ...we assume they exist when asked for, and as they delete themselves when toggled, we return 0 if they do exist, and 1 if they don't
         int entity = FindEntityByClassname(-1, "trigger_once");
         while (entity != -1) {
             char foundEntityName[64];
@@ -61,30 +61,8 @@ bool IsTriggerToggled(char[] entityClassname, char[] entityName) {
         // We've haven't found a trigger_once with this name, so it doesn't exists,...
         // ...so it either does not exist at all (you should have made sure it exists before calling it !!!) or it has been triggered
         return true;
-    } else if (strcmp(entityClassname, "trigger_multiple") == 0) {
-        // For trigger_multiple
-        // They have the m_toggle_state propData to return here, as they don't delete themselves when toggled.
-        int entity = FindEntityByClassname(-1, "trigger_multiple");
-        while (entity != -1) {
-            char foundEntityName[64];
-            if (HasEntProp(entity, Prop_Data, "m_iName")) {
-                GetEntPropString(entity, Prop_Data, "m_iName", foundEntityName, sizeof(foundEntityName));
-                if (strcmp(foundEntityName, entityName) == 0) {
-                    PrintToServer("Found %s", foundEntityName);
-                    if (HasEntProp(entity, Prop_Data, "m_hTouchingEntities")) {
-                        int foundEntityToggledStatus = GetEntPropEnt(entity, Prop_Data, "m_hTouchingEntities");
-                        if (foundEntityToggledStatus >= 1) {
-                            return (true);
-                        }
-                    }
-                }
-            }
-            entity = FindEntityByClassname(entity, "trigger_multiple");
-        }
-        // We've haven't found a trigger_multiple with this name, so it doesn't exists... return true
-        return true;
     } else {
         // Unsupported trigger type...
-        return true;
+        return false;
     }
 }

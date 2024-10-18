@@ -20,6 +20,7 @@ public Plugin myinfo =
 #include "chased-watcher.sp"
 #include "zone-watcher.sp"
 #include "trigger-watcher.sp"
+#include "scripted-sequence-watcher.sp"
 #include "entity-alive-watcher.sp"
 #include "entity-sequence-watcher.sp"
 #include "extension.sp"
@@ -31,6 +32,7 @@ enum struct AdaptiveMusicSettings {
     SuitWatcher suitWatcher;
     ZoneWatcher zoneWatcher;
     TriggerWatcher triggerWatcher;
+    ScriptedSequenceWatcher scriptedSequenceWatcher;
     ChasedWatcher chasedWatcher;
     EntityAliveWatcher entityAliveWatcher;
     EntitySequenceWatcher entitySequenceWatcher;
@@ -48,6 +50,7 @@ public void OnPluginStart()
     RegAdminCmd("amm_getsuitstatus", Command_GetSuitStatus, ADMFLAG_GENERIC);
     RegAdminCmd("amm_getpos", Command_GetPos, ADMFLAG_GENERIC);
     RegAdminCmd("amm_gettriggerstatus", Command_GetTriggerStatus, ADMFLAG_GENERIC);
+    RegAdminCmd("amm_getscriptedsequencestatus", Command_GetScriptedSequenceStatus, ADMFLAG_GENERIC);
     RegAdminCmd("amm_getchasedcount", Command_GetChasedCount, ADMFLAG_GENERIC);
     RegAdminCmd("amm_isentityalive", Command_IsEntityAlive, ADMFLAG_GENERIC);
     RegAdminCmd("amm_getentitysequence", Command_GetEntitySequence, ADMFLAG_GENERIC);
@@ -354,6 +357,55 @@ int ParseKeyValues(KeyValues kv) {
                                 PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"watchers.triggers\" section");
                                 return 1;
                             }
+                        } else if (strcmp(sectionName, "scripted_sequences") == 0) {
+                            mapMusicSettings.scriptedSequenceWatcher.scriptedSequenceCount = 0;
+                            // Step 1.5 (for ScriptedSequenceWatcher): Get the scripted_sequences values
+                            if (kv.GotoFirstSubKey(false)) {
+                                do {
+                                    kv.GetSectionName(sectionName, sizeof sectionName);
+                                    if (strcmp(sectionName, "scripted_sequence") == 0) {
+                                        ScriptedSequence scriptedSequence;
+                                        if (kv.GotoFirstSubKey(false)) {
+                                            do {
+                                                kv.GetSectionName(sectionName, sizeof sectionName);
+                                                if (strcmp(sectionName, "parameter") == 0) {
+                                                    // Step 1.3.1: Get the scripted_sequence parameter
+                                                    if (kv.GetDataType(NULL_STRING) != KvData_None) {
+                                                        char value[64];
+                                                        kv.GetString(NULL_STRING, value, sizeof value);
+                                                        scriptedSequence.parameter = value;
+                                                        PrintToServer("AMM Plugin - ScriptedSequence parameter is %s", scriptedSequence.parameter);
+                                                    } else {
+                                                        PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"watcher.scripted_sequences.scripted_sequence.parameter\" key");
+                                                        return 1;
+                                                    }
+                                                } else if (strcmp(sectionName, "entity_name") == 0) {
+                                                    // Step 1.3.3: Get the scripted_sequence entityName
+                                                    if (kv.GetDataType(NULL_STRING) != KvData_None) {
+                                                        char value[64];
+                                                        kv.GetString(NULL_STRING, value, sizeof value);
+                                                        scriptedSequence.entityName = value;
+                                                        PrintToServer("AMM Plugin - ScriptedSequence entityName %s", scriptedSequence.entityName);
+                                                    } else {
+                                                        PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"watcher.scripted_sequences.scripted_sequence.entity_name\" key");
+                                                        return 1;
+                                                    }
+                                                }
+                                            } while (kv.GotoNextKey(false));
+                                            scriptedSequenceWatcherScriptedSequences[mapMusicSettings.scriptedSequenceWatcher.scriptedSequenceCount] = scriptedSequence;
+                                            mapMusicSettings.scriptedSequenceWatcher.scriptedSequenceCount++;
+                                        } else {
+                                            PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"watchers.scripted_sequences.scripted_sequence\" section");
+                                            return 1;
+                                        }
+                                    }
+                                    kv.GoBack();
+                                } while (kv.GotoNextKey(false));
+                                kv.GoBack();
+                            } else {
+                                PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"watchers.scripted_sequences\" section");
+                                return 1;
+                            }
                         }
                     } while (kv.GotoNextKey(false));
                 } else {
@@ -400,6 +452,11 @@ void InitAdaptiveMusic(){
     } else {
         mapMusicSettings.triggerWatcher.active = false;
     }
+    if (mapMusicSettings.scriptedSequenceWatcher.scriptedSequenceCount > 0) {
+        mapMusicSettings.scriptedSequenceWatcher.active = true;
+    } else {
+        mapMusicSettings.scriptedSequenceWatcher.active = false;
+    }
     if (strcmp(mapMusicSettings.entityAliveWatcher.parameter, NULL_STRING) != 0) { // TODO: Add a check for entityclassname too
         mapMusicSettings.entityAliveWatcher.active = true;
     } else {
@@ -431,6 +488,8 @@ void StopAdaptiveMusic(){
     mapMusicSettings.zoneWatcher.zoneCount = 0;
     mapMusicSettings.triggerWatcher.active = false;
     mapMusicSettings.triggerWatcher.triggerCount = 0;
+    mapMusicSettings.scriptedSequenceWatcher.active = false;
+    mapMusicSettings.scriptedSequenceWatcher.scriptedSequenceCount = 0;
     mapMusicSettings.entityAliveWatcher.active = false;
     mapMusicSettings.entitySequenceWatcher.active = false;
 }
@@ -476,11 +535,10 @@ public void Think() {
         }
     }
     if (mapMusicSettings.triggerWatcher.active) {
-        // ZoneWatcher think
+        // TriggerWatcher think
         for (int i = 0; i < mapMusicSettings.triggerWatcher.triggerCount; i++)
         {
             bool triggerToggled = IsTriggerToggled(triggerWatcherTriggers[i].entityClassname, triggerWatcherTriggers[i].entityName);
-            PrintToServer("AMM Plugin - Trigger %s (%s) is in toggle state %i", triggerWatcherTriggers[i].entityName, triggerWatcherTriggers[i].entityClassname, triggerToggled);
             if (triggerToggled == true && triggerWatcherTriggers[i].lastKnownTriggerStatus == false) {
                 SetFMODGlobalParameter(triggerWatcherTriggers[i].parameter, 1.0);
                 triggerWatcherTriggers[i].lastKnownTriggerStatus = true;
@@ -488,6 +546,20 @@ public void Think() {
                 //// Should triggers go from 1 to 0 or stay triggered ? Currently staying triggered.
                 //SetFMODGlobalParameter(triggerWatcherTriggers[i].parameter, 0.0);
                 //triggerWatcherTriggers[i].lastKnownTriggerStatus = false;
+            }
+        }
+    }
+    if (mapMusicSettings.scriptedSequenceWatcher.active) {
+        // ScriptedSequenceWatcher think
+        for (int i = 0; i < mapMusicSettings.scriptedSequenceWatcher.scriptedSequenceCount; i++)
+        {
+            bool scriptedSequenceWatcherPlaying = IsScriptedSequencePlaying(scriptedSequenceWatcherScriptedSequences[i].entityName);
+            if (scriptedSequenceWatcherPlaying == true && scriptedSequenceWatcherScriptedSequences[i].lastKnownScriptedSequenceStatus == false) {
+                SetFMODGlobalParameter(scriptedSequenceWatcherScriptedSequences[i].parameter, 1.0);
+                scriptedSequenceWatcherScriptedSequences[i].lastKnownScriptedSequenceStatus = true;
+            } else if (scriptedSequenceWatcherPlaying == false && scriptedSequenceWatcherScriptedSequences[i].lastKnownScriptedSequenceStatus == true) {
+                SetFMODGlobalParameter(scriptedSequenceWatcherScriptedSequences[i].parameter, 0.0);
+                scriptedSequenceWatcherScriptedSequences[i].lastKnownScriptedSequenceStatus = false;
             }
         }
     }
