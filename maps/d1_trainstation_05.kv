@@ -15,6 +15,31 @@
 		"type" "entity_sequence"
 		"entity_classname" "prop_dynamic"
 		"entity_name" "tport_switch_model"
-		"parameter" "teleport_switch_sequence"
+		"parameter" "entity_sequence_1"
+	}
+	"watcher"
+	{
+		"type" "trigger"
+		"triggers"
+		{
+			"trigger"
+			{
+				"entity_classname" "trigger_once"
+				"entity_name" "lab_entry_script_trigger"
+				"parameter" "is_trigger_1_toggled"
+			}
+		}
+	}
+	"watcher"
+	{
+		"type" "scripted_sequence"
+		"scripted_sequences"
+		{
+			"scripted_sequence"
+			{
+				"entity_name" "alyx_standon_pad_1"
+				"parameter" "is_sequence_1_playing"
+			}
+		}
 	}
 }
