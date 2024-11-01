@@ -603,5 +603,21 @@ public void Think() {
             mapMusicSettings.entitySequenceWatcher.lastKnownEntitySequence = entitySequence;
         }
     }
-    PrintToServer("Thinking the watchers took %.4f ms", 1000*(GetEngineTime()-fTimestamp));
+    //PrintToServer("AMM Plugin - DEBUG - Thinking the watchers took %.4f ms", 1000*(GetEngineTime()-fTimestamp));
+    
+    // DEBUG STUFF
+    int entity = FindEntityByClassname(-1, "weapon_*");
+    while (entity != -1) {
+        char entityClassName[128];
+        GetEntityClassname(entity, entityClassName, sizeof entityClassName);
+        if (HasEntProp(entity, Prop_Data, "m_hOwnerEntity")) {
+            int owner = GetEntPropEnt(entity, Prop_Data, "m_hOwnerEntity");
+            if (owner == musicPlayer) {
+                char ownerClassName[128];
+                GetEntityClassname(owner, ownerClassName, sizeof ownerClassName);                
+                PrintToServer("AMM Plugin - DEBUG - Entity %s has the weapon %s", ownerClassName, entityClassName);
+            }
+        }
+        entity = FindEntityByClassname(entity, "weapon_*");
+    }
 }
