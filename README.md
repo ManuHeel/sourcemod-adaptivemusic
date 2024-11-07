@@ -1,3 +1,5 @@
+# MIGRATED TO GITLAB UNDER https://gitlab.com/hl2-amm
+
 # sourcemod-adaptivemusic
 SourceMod-based client-side plugin of the AdaptiveMusic plugin system for Source Engine
 
