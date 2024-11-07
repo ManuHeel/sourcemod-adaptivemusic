@@ -23,6 +23,7 @@ public Plugin myinfo =
 #include "scripted-sequence-watcher.sp"
 #include "entity-alive-watcher.sp"
 #include "entity-sequence-watcher.sp"
+#include "weapon-watcher.sp"
 #include "extension.sp"
 
 enum struct AdaptiveMusicSettings {
@@ -36,6 +37,7 @@ enum struct AdaptiveMusicSettings {
     ChasedWatcher chasedWatcher;
     EntityAliveWatcher entityAliveWatcher;
     EntitySequenceWatcher entitySequenceWatcher;
+    WeaponWatcher weaponWatcher;
 }
 
 AdaptiveMusicSettings mapMusicSettings;
@@ -54,6 +56,7 @@ public void OnPluginStart()
     RegAdminCmd("amm_getchasedcount", Command_GetChasedCount, ADMFLAG_GENERIC);
     RegAdminCmd("amm_isentityalive", Command_IsEntityAlive, ADMFLAG_GENERIC);
     RegAdminCmd("amm_getentitysequence", Command_GetEntitySequence, ADMFLAG_GENERIC);
+    RegAdminCmd("amm_doesplayerhaveweapon", Command_DoesPlayerHaveWeapon, ADMFLAG_GENERIC);
     // Debug FMOD commands
     RegAdminCmd("amm_loadbank", Command_LoadBank, ADMFLAG_GENERIC);
     RegAdminCmd("amm_startevent", Command_StartEvent, ADMFLAG_GENERIC);
@@ -201,6 +204,9 @@ int ParseKeyValues(KeyValues kv) {
                                 } else if (strcmp(watcherType, "entity_sequence") == 0) {
                                     mapMusicSettings.entitySequenceWatcher.parameter = value;
                                     PrintToServer("AMM Plugin - EntitySequence parameter is %s", value);
+                                } else if (strcmp(watcherType, "weapon") == 0) {
+                                    mapMusicSettings.weaponWatcher.parameter = value;
+                                    PrintToServer("AMM Plugin - WeaponWatcher parameter is %s", value);
                                 }
                             } else {
                                 PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"watcher.parameter\" key");
@@ -239,6 +245,22 @@ int ParseKeyValues(KeyValues kv) {
                                 }
                             } else {
                                 PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"watcher.entity_name\" key");
+                                return 1;
+                            }
+                        } else if (strcmp(sectionName, "weapon_classname") == 0) {
+                            // Step 1.4: Get the weapon_classname
+                            if (kv.GetDataType(NULL_STRING) != KvData_None) {
+                                char value[64];
+                                kv.GetString(NULL_STRING, value, sizeof value);
+                                if (strcmp(watcherType, "weapon") == 0) {
+                                    mapMusicSettings.weaponWatcher.weaponClassname = value;
+                                    PrintToServer("AMM Plugin - WeaponWatcher weapon classname is %s", value);
+                                } else {
+                                    PrintToServer("AMM Plugin - KeyValues file malformed. Got a \"watcher.weapon_classname\" key for a watcher type that does not accept entity class names");
+                                    return 1;                                    
+                                }
+                            } else {
+                                PrintToServer("AMM Plugin - KeyValues file malformed. Got an empty \"watcher.weapon_classname\" key");
                                 return 1;
                             }
                         } else if (strcmp(sectionName, "zones") == 0) {
@@ -452,7 +474,7 @@ void InitAdaptiveMusic(){
     } else {
         mapMusicSettings.triggerWatcher.active = false;
     }
-    if (mapMusicSettings.scriptedSequenceWatcher.scriptedSequenceCount > 0) {
+    if (mapMusicSettings.scriptedSequenceWatcher.scriptedSequenceCount > 0) { // TODO: Add a check for entityname too
         mapMusicSettings.scriptedSequenceWatcher.active = true;
     } else {
         mapMusicSettings.scriptedSequenceWatcher.active = false;
@@ -466,6 +488,11 @@ void InitAdaptiveMusic(){
         mapMusicSettings.entitySequenceWatcher.active = true;
     } else {
         mapMusicSettings.entitySequenceWatcher.active = false;
+    }
+    if (strcmp(mapMusicSettings.weaponWatcher.parameter, NULL_STRING) != 0) { // TODO: Add a check for entityclassname and entityname too
+        mapMusicSettings.weaponWatcher.active = true;
+    } else {
+        mapMusicSettings.weaponWatcher.active = false;
     }
 }
 
@@ -492,6 +519,7 @@ void StopAdaptiveMusic(){
     mapMusicSettings.scriptedSequenceWatcher.scriptedSequenceCount = 0;
     mapMusicSettings.entityAliveWatcher.active = false;
     mapMusicSettings.entitySequenceWatcher.active = false;
+    mapMusicSettings.weaponWatcher.active = false;
 }
 
 int thinkPeriod = 10;
@@ -603,21 +631,13 @@ public void Think() {
             mapMusicSettings.entitySequenceWatcher.lastKnownEntitySequence = entitySequence;
         }
     }
-    //PrintToServer("AMM Plugin - DEBUG - Thinking the watchers took %.4f ms", 1000*(GetEngineTime()-fTimestamp));
-    
-    // DEBUG STUFF
-    int entity = FindEntityByClassname(-1, "weapon_*");
-    while (entity != -1) {
-        char entityClassName[128];
-        GetEntityClassname(entity, entityClassName, sizeof entityClassName);
-        if (HasEntProp(entity, Prop_Data, "m_hOwnerEntity")) {
-            int owner = GetEntPropEnt(entity, Prop_Data, "m_hOwnerEntity");
-            if (owner == musicPlayer) {
-                char ownerClassName[128];
-                GetEntityClassname(owner, ownerClassName, sizeof ownerClassName);                
-                PrintToServer("AMM Plugin - DEBUG - Entity %s has the weapon %s", ownerClassName, entityClassName);
-            }
+    if (mapMusicSettings.weaponWatcher.active) {
+        // WeaponWatcher think
+        int entitySequence = GetEntitySequence(mapMusicSettings.entitySequenceWatcher.entityClassname, mapMusicSettings.entitySequenceWatcher.entityName);
+        if (entitySequence != mapMusicSettings.entitySequenceWatcher.lastKnownEntitySequence) {
+            SetFMODGlobalParameter(mapMusicSettings.entitySequenceWatcher.parameter, float(entitySequence));
+            mapMusicSettings.entitySequenceWatcher.lastKnownEntitySequence = entitySequence;
         }
-        entity = FindEntityByClassname(entity, "weapon_*");
     }
+    PrintToServer("AMM Plugin - DEBUG - Thinking the watchers took %.4f ms", 1000*(GetEngineTime()-fTimestamp));
 }
